@@ -1,1 +1,2399 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FX Journal Pro — Multi Account</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/prop-types@15/prop-types.js"></script>
+<script crossorigin src="https://unpkg.com/recharts@2/umd/Recharts.js"></script>
+<script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+  html, body { margin: 0; padding: 0; background: #11141B; overflow-x: hidden; }
+  * { box-sizing: border-box; }
+  
+  @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-6px); } }
+  @keyframes breathe { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.03); } }
+  @keyframes rotateIcon { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes bounceIcon { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  @keyframes pulseIcon { 0%, 100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.2); opacity: 1; } }
+  @keyframes glowPulse { 0%, 100% { filter: drop-shadow(0 0 5px rgba(212, 166, 87, 0.2)); } 50% { filter: drop-shadow(0 0 20px rgba(212, 166, 87, 0.5)); } }
+  @keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  
+  .animate-float { animation: float 3s ease-in-out infinite; }
+  .animate-breathe { animation: breathe 2.5s ease-in-out infinite; }
+  .animate-rotate { animation: rotateIcon 8s linear infinite; }
+  .animate-bounce { animation: bounceIcon 2s ease-in-out infinite; }
+  .animate-pulse { animation: pulseIcon 2s ease-in-out infinite; }
+  .animate-glow { animation: glowPulse 3s ease-in-out infinite; }
+  
+  /* ===== استایل شیشه‌ای سراسری ===== */
+  .glass-effect {
+    background: color-mix(in srgb, var(--card-color, #151922) 72%, rgba(255,255,255,0.08)) !important;
+    backdrop-filter: blur(10px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(150%) !important;
+    border: 2px solid rgba(255, 255, 255, 0.4) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 0 0 rgba(255, 255, 255, 0.4) !important;
+  }
+  
+  .glass-soft {
+    background: color-mix(in srgb, var(--card-color, #151922) 48%, rgba(255,255,255,0.05)) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  }
+
+  /* ===== شیشه و نور ظریف صفحه ===== */
+  .app-shell { position: relative; isolation: isolate; }
+  .app-shell::before, .app-shell::after {
+    content: ''; position: fixed; left: 0; right: 0; height: 230px; pointer-events: none; z-index: -1;
+    opacity: .16; filter: blur(12px);
+  }
+  .app-shell::before { top: -110px; background: radial-gradient(ellipse at 50% 100%, var(--accent-color) 0%, transparent 68%); }
+  .app-shell::after { bottom: -120px; background: radial-gradient(ellipse at 50% 0%, var(--accent-color) 0%, transparent 70%); }
+
+  /* ===== فرم ثبت معامله؛ همان شیشه، اما کمی حرفه‌ای‌تر ===== */
+  .dashboard-user-badge { white-space: nowrap; opacity: .9; }
+  .trade-form {
+    position: relative; overflow: hidden;
+    box-shadow: 0 24px 70px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.16) !important;
+  }
+  .trade-form::before {
+    content: ''; position: absolute; top: 0; left: 7%; right: 7%; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-color), transparent); opacity: .65;
+  }
+  .trade-form input, .trade-form select {
+    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease, background .2s ease !important;
+  }
+  .trade-form input:focus, .trade-form select:focus {
+    outline: none !important; border-color: color-mix(in srgb, var(--accent-color) 70%, white 0%) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 14%, transparent), 0 8px 22px rgba(0,0,0,.16) !important;
+    transform: translateY(-1px);
+  }
+  .trade-form label { letter-spacing: .01em; }
+  .trade-form .form-section {
+    padding: 14px; border-radius: 14px; margin-bottom: 14px;
+    background: color-mix(in srgb, var(--card-color) 62%, transparent);
+    border: 1px solid rgba(255,255,255,.07);
+  }
+  .trade-form .form-submit {
+    box-shadow: 0 10px 28px color-mix(in srgb, var(--accent-color) 25%, transparent), inset 0 1px 0 rgba(255,255,255,.28) !important;
+    border-radius: 12px !important;
+    transition: transform .2s ease, box-shadow .2s ease, filter .2s ease !important;
+  }
+  .trade-form .form-submit:hover { transform: translateY(-2px); filter: brightness(1.06); }
+
+  /* ===== انیمیشن باز شدن منوی کشویی ===== */
+  @keyframes dropdownIn { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
+  .dropdown-open { animation: dropdownIn 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+
+  /* ===== ناوبری شناور ۵ گزینه‌ای ===== */
+  .floating-nav-wrapper {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 150;
+    width: 440px;
+    max-width: 95vw;
+  }
+  
+  .floating-nav {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: center;
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--nav-color) 14%, rgba(255,255,255,0.08));
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1.5px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255,255,255,0.5), inset 0 -1px 2px rgba(0,0,0,0.1);
+  }
+
+  .slider-indicator {
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    height: auto;
+    width: calc((100% - 28px) / 5);
+    border-radius: 22px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--nav-color) 96%, white 4%), color-mix(in srgb, var(--nav-color) 62%, black 38%));
+    box-shadow: 0 4px 18px color-mix(in srgb, var(--nav-color) 52%, transparent), inset 0 2px 3px rgba(255,255,255,0.3), inset 0 -3px 5px rgba(0,0,0,0.3);
+    transition: right 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* هر نشانگر دقیقاً هم‌اندازه‌ی جایگاه خودش است؛ دیگر از کناره‌ها بیرون نمی‌زند. */
+  .slider-indicator.pos-1 { right: 14px; }
+  .slider-indicator.pos-2 { right: calc(14px + (100% - 28px) / 5); }
+  .slider-indicator.pos-4 { right: calc(14px + 3 * (100% - 28px) / 5); }
+  .slider-indicator.pos-5 { right: calc(14px + 4 * (100% - 28px) / 5); }
+
+  .nav-btn-item {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    width: 100%;
+    height: 68px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: 20px;
+  }
+  
+  .nav-btn-item:hover { color: #fff; transform: translateY(-2px); }
+  .nav-btn-item.active { color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+  
+  .nav-btn-item span { font-size: 10px; font-weight: 600; opacity: 0.8; text-align: center; line-height: 1.3; }
+  .nav-btn-item svg { width: 22px; height: 22px; fill: currentColor; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2)); animation: floatIcon 3s ease-in-out infinite; }
+  .nav-btn-item:nth-child(2) svg { animation-delay: 0.2s; }
+  .nav-btn-item:nth-child(4) svg { animation-delay: 0.4s; }
+  .nav-btn-item:nth-child(5) svg { animation-delay: 0.6s; }
+  
+  .nav-add-btn {
+    z-index: 2;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #ffffff 0%, #aaa 100%);
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.8);
+    transition: all 0.3s ease;
+    margin: 0 auto;
+    margin-top: -20px;
+  }
+  .nav-add-btn:hover { transform: scale(1.1) rotate(90deg); }
+  .nav-add-btn svg { width: 26px; height: 26px; fill: none; stroke: #000; stroke-width: 2.5; }
+
+  @keyframes floatIcon {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+  }
+
+  .stat-card { transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); transform-style: preserve-3d; perspective: 600px; cursor: default; }
+  .stat-card:hover { transform: translateY(-4px) rotateX(1.5deg) rotateY(1.5deg); box-shadow: 0 20px 40px rgba(0,0,0,0.4) !important; }
+  .stat-card:active { transform: scale(0.97) !important; }
+  
+  ::-webkit-scrollbar { height: 8px; width: 8px; }
+  ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+  ::-webkit-scrollbar-thumb { background: rgba(212,166,87,0.3); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(212,166,87,0.6); }
+  
+  ::selection { background: rgba(212,166,87,0.2); color: #fff; }
+  .icon-spin { animation: spinSlow 10s linear infinite; display: inline-block; }
+  .icon-bounce { animation: bounceIcon 2.5s ease-in-out infinite; display: inline-block; }
+  .icon-pulse { animation: pulseIcon 2s ease-in-out infinite; display: inline-block; }
+  .icon-float { animation: float 3s ease-in-out infinite; display: inline-block; }
+  .icon-glow { animation: glowPulse 2.5s ease-in-out infinite; display: inline-block; }
+  
+  @media print { .no-print { display: none !important; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo, useRef } = React;
+const {
+  LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine, Cell, PieChart, Pie, Legend, ComposedChart
+} = Recharts;
+
+const storage = {
+  async get(key) {
+    const v = localStorage.getItem(key);
+    return v !== null ? { value: v } : null;
+  },
+  async set(key, value) {
+    localStorage.setItem(key, value);
+    return { value };
+  }
+};
+
+const Icon = ({ children, size = 16, color = 'currentColor', className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
+);
+const Plus = (p) => <Icon {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></Icon>;
+const X = (p) => <Icon {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Icon>;
+const Edit = (p) => <Icon {...p}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></Icon>;
+const TrendingUp = (p) => <Icon {...p}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></Icon>;
+const TrendingDown = (p) => <Icon {...p}><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></Icon>;
+const Trash2 = (p) => <Icon {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Icon>;
+const Loader2 = (p) => <Icon {...p}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></Icon>;
+const Award = (p) => <Icon {...p}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></Icon>;
+const Target = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></Icon>;
+const MoreVertical = (p) => <Icon {...p}><circle cx="12" cy="12" r="1.3" fill={p.color || 'currentColor'}/><circle cx="12" cy="5" r="1.3" fill={p.color || 'currentColor'}/><circle cx="12" cy="19" r="1.3" fill={p.color || 'currentColor'}/></Icon>;
+const Palette = (p) => <Icon {...p}><circle cx="13.5" cy="6.5" r="1.2" fill={p.color || 'currentColor'}/><circle cx="17.5" cy="10.5" r="1.2" fill={p.color || 'currentColor'}/><circle cx="8.5" cy="7.5" r="1.2" fill={p.color || 'currentColor'}/><circle cx="6.5" cy="12.5" r="1.2" fill={p.color || 'currentColor'}/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.6-.7 1.6-1.6 0-.4-.2-.8-.4-1.1-.3-.3-.4-.6-.4-1.1a1.6 1.6 0 0 1 1.6-1.6h2c3 0 5.5-2.5 5.5-5.5C22 6 17.5 2 12 2z"/></Icon>;
+const RotateCcw = (p) => <Icon {...p}><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></Icon>;
+const Download = (p) => <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></Icon>;
+const Upload = (p) => <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></Icon>;
+const AlertTriangle = (p) => <Icon {...p}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></Icon>;
+
+const LayoutDashboard = (p) => <Icon {...p}><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></Icon>;
+const Layers = (p) => <Icon {...p}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></Icon>;
+const CalendarDays = (p) => <Icon {...p}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></Icon>;
+const FileText = (p) => <Icon {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></Icon>;
+
+const DEFAULT_THEME = {
+  bg: '#11141B', bgAlt: '#171B24', bgCard: '#151922', accent: '#D4A657',
+  positive: '#4FA98C', negative: '#C4696B', text: '#EDEBE6', navColor: '#0072ff'
+};
+
+const PRESET_THEMES = [
+  { name: 'طلایی کلاسیک', bg: '#11141B', bgCard: '#151922', accent: '#D4A657', positive: '#4FA98C', negative: '#C4696B', text: '#EDEBE6', navColor: '#0072ff' },
+  { name: 'نئون آبی', bg: '#0A0E1A', bgCard: '#111827', accent: '#3B82F6', positive: '#10B981', negative: '#EF4444', text: '#F1F5F9', navColor: '#3B82F6' },
+  { name: 'بنفش لوکس', bg: '#0F0A1A', bgCard: '#1A1028', accent: '#8B5CF6', positive: '#34D399', negative: '#F87171', text: '#EDE9FE', navColor: '#8B5CF6' },
+  { name: 'زمردی تیره', bg: '#0A1A12', bgCard: '#0F2418', accent: '#059669', positive: '#34D399', negative: '#F87171', text: '#ECFDF5', navColor: '#059669' },
+  { name: 'صورتی مدرن', bg: '#1A0A14', bgCard: '#24101E', accent: '#EC4899', positive: '#34D399', negative: '#F87171', text: '#FDF2F8', navColor: '#EC4899' },
+  { name: 'نارنجی انرژی', bg: '#1A0E08', bgCard: '#241810', accent: '#F59E0B', positive: '#10B981', negative: '#EF4444', text: '#FFFBEB', navColor: '#F59E0B' },
+];
+
+const SESSIONS = ['آسیایی', 'لندن', 'نیویورک', 'همپوشانی لندن/نیویورک'];
+const SYMBOL_PRESETS = ['XAUUSD', 'EURUSD', 'GBPUSD', 'US30', 'NAS100', 'BTCUSD'];
+const DAYS = ['دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه'];
+const FULL_DAYS_FA = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];
+const EMOTION_TAGS = ['😌 آرام', '😰 استرس', '😤 عجله', '😎 اعتماد', '😟 ترس', '😋 طمع', '😴 خستگی', '🧘 متمرکز'];
+
+function weekdayFaFromDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return '';
+  return FULL_DAYS_FA[d.getDay()];
+}
+
+function toLocalISODate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function weekInfoFromDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return null;
+  const day = d.getDay();
+  const sinceSaturday = (day + 1) % 7;
+  const start = new Date(d);
+  start.setDate(d.getDate() - sinceSaturday);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  return { key: toLocalISODate(start), start, end };
+}
+
+function fmtDateShort(d) {
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}`;
+}
+
+function nameInitials(name) {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '؟';
+  if (parts.length === 1) return parts[0].slice(0, 2);
+  return `${parts[0][0]}.${parts[1][0]}`;
+}
+
+const DEFAULT_STRATEGIES = ['اردر بلاک', 'عرضه و تقاضا', 'پرایس اکشن', 'بریک‌اوت', 'پول‌بک'];
+const SYMBOL_MULTIPLIERS = { XAUUSD: 100, EURUSD: 100000, GBPUSD: 100000, US30: 1, NAS100: 1, BTCUSD: 1 };
+const DEFAULT_ACCOUNTS = [{ id: 'default', name: 'حساب اصلی', balance: 1000, currency: 'USD' }];
+const PIP_SIZES = {
+  EURUSD: 0.0001, GBPUSD: 0.0001, USDJPY: 0.01, EURJPY: 0.01, GBPJPY: 0.01,
+  AUDUSD: 0.0001, NZDUSD: 0.0001, USDCAD: 0.0001, USDCHF: 0.0001,
+  XAUUSD: 0.01, XAGUSD: 0.01, US30: 1, NAS100: 1, BTCUSD: 1, ETHUSD: 1
+};
+function pipSizeFor(symbol) { return PIP_SIZES[symbol] || (symbol && symbol.endsWith('JPY') ? 0.01 : (symbol && /USD|EUR|GBP|AUD|NZD|CAD|CHF/.test(symbol) ? 0.0001 : 1)); }
+function calcPips(t) {
+  const e = parseFloat(t.entryPrice), x = parseFloat(t.exitPrice);
+  if (!Number.isFinite(e) || !Number.isFinite(x)) return 0;
+  const sign = t.direction === 'خرید' ? 1 : -1;
+  return ((x - e) * sign) / pipSizeFor(t.symbol);
+}
+function calcTradeR(t, balance) {
+  const risk = balance > 0 ? balance * ((parseFloat(t.riskPercent) || 1) / 100) : 0;
+  return risk ? (Number(t.pnl) || 0) / risk : 0;
+}
+
+const EMPTY_FORM = {
+  date: toLocalISODate(new Date()), symbol: 'XAUUSD', customSymbol: '', session: SESSIONS[0], time: '',
+  direction: 'خرید', entryPrice: '', stopLoss: '', target: '', exitPrice: '', volume: '',
+  strategy: '', result: 'win', emotion: '', pnl: '', commission: '', swap: '', riskPercent: '1',
+};
+
+const SEED = [
+  { id: 1, date: '2026-07-14', symbol: 'XAUUSD', session: 'لندن', direction: 'خرید', pnl: 184, commission: -2, swap: -1, riskPercent: 1.5 },
+  { id: 2, date: '2026-07-14', symbol: 'EURUSD', session: 'آسیایی', direction: 'فروش', pnl: -62, commission: -1.5, swap: 0, riskPercent: 1 },
+  { id: 3, date: '2026-07-15', symbol: 'XAUUSD', session: 'نیویورک', direction: 'خرید', pnl: 312, commission: -2, swap: -1.5, riskPercent: 1 },
+  { id: 4, date: '2026-07-15', symbol: 'US30', session: 'همپوشانی لندن/نیویورک', direction: 'خرید', pnl: 245, commission: -1, swap: 0, riskPercent: 1.2 },
+  { id: 5, date: '2026-07-16', symbol: 'GBPUSD', session: 'لندن', direction: 'فروش', pnl: -88, commission: -1.5, swap: 0.5, riskPercent: 1 },
+  { id: 6, date: '2026-07-16', symbol: 'XAUUSD', session: 'لندن', direction: 'خرید', pnl: 156, commission: -2, swap: -1, riskPercent: 0.8 },
+  { id: 7, date: '2026-07-17', symbol: 'NAS100', session: 'نیویورک', direction: 'فروش', pnl: -134, commission: -1, swap: 0, riskPercent: 1.5 },
+  { id: 8, date: '2026-07-17', symbol: 'XAUUSD', session: 'نیویورک', direction: 'خرید', pnl: 278, commission: -2, swap: -1, riskPercent: 1 },
+  { id: 9, date: '2026-07-18', symbol: 'EURUSD', session: 'آسیایی', direction: 'خرید', pnl: 44, commission: -1.5, swap: 0, riskPercent: 0.5 },
+  { id: 10, date: '2026-07-18', symbol: 'US30', session: 'همپوشانی لندن/نیویورک', direction: 'خرید', pnl: 198, commission: -1, swap: 0, riskPercent: 1.2 },
+  { id: 11, date: '2026-07-20', symbol: 'GBPUSD', session: 'لندن', direction: 'خرید', pnl: 97, commission: -1.5, swap: 0.5, riskPercent: 1 },
+  { id: 12, date: '2026-07-20', symbol: 'XAUUSD', session: 'لندن', direction: 'فروش', pnl: -71, commission: -2, swap: -1, riskPercent: 1 },
+  { id: 13, date: '2026-07-21', symbol: 'BTCUSD', session: 'نیویورک', direction: 'خرید', pnl: 410, commission: -3, swap: 0, riskPercent: 1.5 },
+  { id: 14, date: '2026-07-21', symbol: 'NAS100', session: 'همپوشانی لندن/نیویورک', direction: 'خرید', pnl: 166, commission: -1, swap: 0, riskPercent: 1 },
+  { id: 15, date: '2026-07-22', symbol: 'XAUUSD', session: 'نیویورک', direction: 'خرید', pnl: 221, commission: -2, swap: -1, riskPercent: 1.2 },
+  { id: 16, date: '2026-07-22', symbol: 'EURUSD', session: 'آسیایی', direction: 'فروش', pnl: -39, commission: -1.5, swap: 0, riskPercent: 0.8 },
+  { id: 17, date: '2026-07-23', symbol: 'XAUUSD', session: 'همپوشانی لندن/نیویورک', direction: 'خرید', pnl: 305, commission: -2, swap: -1.5, riskPercent: 1 },
+  { id: 18, date: '2026-07-24', symbol: 'GBPUSD', session: 'آسیایی', direction: 'فروش', pnl: -52, commission: -1.5, swap: 0.5, riskPercent: 1 },
+  { id: 19, date: '2026-07-24', symbol: 'BTCUSD', session: 'نیویورک', direction: 'خرید', pnl: -180, commission: -3, swap: 0, riskPercent: 2 },
+  { id: 20, date: '2026-07-25', symbol: 'XAUUSD', session: 'لندن', direction: 'خرید', pnl: 133, commission: -2, swap: -1, riskPercent: 0.8 },
+];
+
+function fmt(n, digits = 0) {
+  const v = Number(n) || 0;
+  return v.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+
+function calcRR(entry, sl, tp) {
+  const e = parseFloat(entry), s = parseFloat(sl), t = parseFloat(tp);
+  if (isNaN(e) || isNaN(s) || isNaN(t)) return null;
+  const risk = Math.abs(e - s);
+  const reward = Math.abs(t - e);
+  if (risk === 0) return null;
+  return reward / risk;
+}
+
+function rrBucketOf(rr) {
+  if (rr < 1) return '< 1:1';
+  if (rr < 2) return '1:1 – 2:1';
+  if (rr < 3) return '2:1 – 3:1';
+  if (rr < 4) return '3:1 – 4:1';
+  return '4:1+';
+}
+const RR_BUCKETS = ['< 1:1', '1:1 – 2:1', '2:1 – 3:1', '3:1 – 4:1', '4:1+'];
+
+function resultOf(t) {
+  return t.result || (t.pnl > 0 ? 'win' : t.pnl < 0 ? 'loss' : 'be');
+}
+
+function computeStats(trades) {
+  const total = trades.length;
+  const resultWins = trades.filter(t => resultOf(t) === 'win');
+  const resultLosses = trades.filter(t => resultOf(t) === 'loss');
+  const resultBE = trades.filter(t => resultOf(t) === 'be');
+  const pnlWins = trades.filter(t => t.pnl > 0);
+  const pnlLosses = trades.filter(t => t.pnl < 0);
+  const grossProfit = pnlWins.reduce((s, t) => s + t.pnl, 0);
+  const grossLoss = Math.abs(pnlLosses.reduce((s, t) => s + t.pnl, 0));
+  const netPnl = trades.reduce((s, t) => s + t.pnl, 0);
+  const winRate = total ? (resultWins.length / total) * 100 : 0;
+  const winRateExclBE = (resultWins.length + resultLosses.length) ? (resultWins.length / (resultWins.length + resultLosses.length)) * 100 : 0;
+  const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : (grossProfit > 0 ? Infinity : 0);
+  const avgWin = pnlWins.length ? grossProfit / pnlWins.length : 0;
+  const avgLoss = pnlLosses.length ? grossLoss / pnlLosses.length : 0;
+  const expectancy = total ? netPnl / total : 0;
+  const best = total ? Math.max(...trades.map(t => t.pnl)) : 0;
+  const worst = total ? Math.min(...trades.map(t => t.pnl)) : 0;
+
+  let peak = 0, running = 0, maxDD = 0, trough = 0, maxRunUp = 0;
+  const ordered = [...trades].sort((a, b) => {
+    const da = `${a.date || ''} ${a.time || '23:59'}`;
+    const db = `${b.date || ''} ${b.time || '23:59'}`;
+    return da.localeCompare(db) || Number(a.id || 0) - Number(b.id || 0);
+  });
+  ordered.forEach(t => {
+    running += Number(t.pnl) || 0;
+    peak = Math.max(peak, running);
+    maxDD = Math.max(maxDD, peak - running);
+    trough = Math.min(trough, running);
+    maxRunUp = Math.max(maxRunUp, running - trough);
+  });
+
+  const totalCommission = trades.reduce((s, t) => s + (t.commission || 0), 0);
+  const totalSwap = trades.reduce((s, t) => s + (t.swap || 0), 0);
+
+  return {
+    total, wins: resultWins.length, losses: resultLosses.length, bes: resultBE.length,
+    grossProfit, grossLoss, netPnl, winRate, winRateExclBE, profitFactor,
+    avgWin, avgLoss, expectancy, best, worst, maxDD, maxRunUp,
+    totalCommission, totalSwap
+  };
+}
+
+function groupBy(trades, key) {
+  const map = {};
+  trades.forEach(t => {
+    const k = t[key];
+    if (!map[k]) map[k] = [];
+    map[k].push(t);
+  });
+  return Object.entries(map).map(([name, list]) => ({ name, ...computeStats(list) }))
+    .sort((a, b) => b.netPnl - a.netPnl);
+}
+
+function computeRStats(tradesList, riskUnit) {
+  if (!riskUnit) return { totalR: 0, avgWinR: 0, avgLossR: 0, rr: 0 };
+  const rs = tradesList.map(t => t.pnl / riskUnit);
+  const winRs = rs.filter(r => r > 0);
+  const lossRs = rs.filter(r => r < 0).map(r => Math.abs(r));
+  const totalR = rs.reduce((a, b) => a + b, 0);
+  const avgWinR = winRs.length ? winRs.reduce((a, b) => a + b, 0) / winRs.length : 0;
+  const avgLossR = lossRs.length ? lossRs.reduce((a, b) => a + b, 0) / lossRs.length : 0;
+  const rr = avgLossR > 0 ? avgWinR / avgLossR : (avgWinR > 0 ? Infinity : 0);
+  return { totalR, avgWinR, avgLossR, rr };
+}
+
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  const bigint = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+  const r = (bigint >> 16) & 255, g = (bigint >> 8) & 255, b = bigint & 255;
+  return `${r},${g},${b}`;
+}
+
+function useCountUp(target, duration = 700) {
+  const [display, setDisplay] = useState(target);
+  const prevRef = useRef(target);
+  useEffect(() => {
+    const from = prevRef.current;
+    const to = target;
+    if (from === to) return;
+    const start = performance.now();
+    let raf;
+    const tick = (now) => {
+      const p = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisplay(from + (to - from) * eased);
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else prevRef.current = to;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return display;
+}
+
+function createRipple(e, color) {
+  const btn = e.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height) * 1.6;
+  const span = document.createElement('span');
+  span.style.position = 'absolute';
+  span.style.left = `${e.clientX - rect.left - size / 2}px`;
+  span.style.top = `${e.clientY - rect.top - size / 2}px`;
+  span.style.width = `${size}px`;
+  span.style.height = `${size}px`;
+  span.style.borderRadius = '50%';
+  span.style.background = color || 'rgba(255,255,255,0.35)';
+  span.style.pointerEvents = 'none';
+  span.style.transform = 'scale(0)';
+  span.style.opacity = '0.6';
+  span.style.transition = 'transform 0.55s ease-out, opacity 0.55s ease-out';
+  const prevPos = getComputedStyle(btn).position;
+  if (prevPos === 'static') btn.style.position = 'relative';
+  btn.style.overflow = 'hidden';
+  btn.appendChild(span);
+  requestAnimationFrame(() => { span.style.transform = 'scale(1)'; span.style.opacity = '0'; });
+  setTimeout(() => span.remove(), 600);
+}
+
+const Logo = ({ size = 38, accent = '#D4A657' }) => (
+  <div className="animate-glow" style={{
+    width: size, height: size, borderRadius: size * 0.28, flexShrink: 0,
+    background: `linear-gradient(150deg, ${accent} 0%, #8a5f24 100%)`,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    boxShadow: `0 4px 14px ${accent}55, inset 0 1px 1px rgba(255,255,255,0.35), inset 0 -2px 4px rgba(0,0,0,0.25)`,
+  }}>
+    <svg width={size * 0.58} height={size * 0.58} viewBox="0 0 24 24" fill="none">
+      <path d="M3 17L9 10L13 14L21 5" stroke="#1a1206" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 5H21V11" stroke="#1a1206" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  </div>
+);
+
+const ProfileAvatar = ({ size = 38, accent = '#D4A657', name = '' }) => (
+  <div style={{
+    width: size, height: size, borderRadius: '50%', flexShrink: 0,
+    background: `linear-gradient(140deg, ${accent} 0%, #6b4a1c 100%)`,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    boxShadow: `0 3px 10px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.4), inset 0 -2px 3px rgba(0,0,0,0.3)`,
+    fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: '#1a1206', fontSize: size * 0.36,
+  }}>{nameInitials(name)}</div>
+);
+
+const GREGORIAN_MONTHS_FA = ['ژانویه', 'فوریه', 'مارس', 'آوریل', 'مه', 'ژوئن', 'ژوئیه', 'اوت', 'سپتامبر', 'اکتبر', 'نوامبر', 'دسامبر'];
+const WEEKDAY_LETTERS_SAT_FIRST = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
+const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+const firstWeekdaySatFirst = (year, month) => (new Date(year, month, 1).getDay() + 1) % 7;
+
+function CustomDatePicker({ value, onChange, C }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const base = value ? new Date(value + 'T00:00:00') : new Date();
+  const [viewYear, setViewYear] = useState(base.getFullYear());
+  const [viewMonth, setViewMonth] = useState(base.getMonth());
+
+  useEffect(() => {
+    const next = value ? new Date(value + 'T00:00:00') : new Date();
+    if (!isNaN(next.getTime())) {
+      setViewYear(next.getFullYear());
+      setViewMonth(next.getMonth());
+    }
+  }, [value]);
+
+  useEffect(() => {
+    const onClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
+
+  const dim = daysInMonth(viewYear, viewMonth);
+  const offset = firstWeekdaySatFirst(viewYear, viewMonth);
+  const cells = [...Array(offset).fill(null), ...Array.from({ length: dim }, (_, i) => i + 1)];
+
+  const selectDay = (d) => {
+    const iso = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    onChange(iso);
+    setOpen(false);
+  };
+  const prevMonth = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); } else setViewMonth(m => m - 1); };
+  const nextMonth = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); } else setViewMonth(m => m + 1); };
+
+  const d0 = value ? new Date(value + 'T00:00:00') : null;
+  const displayLabel = d0 ? `${d0.getDate()} ${GREGORIAN_MONTHS_FA[d0.getMonth()]} ${d0.getFullYear()}` : 'انتخاب تاریخ';
+
+  return (
+    <div style={{ position: 'relative' }} ref={ref}>
+      <button type="button" onClick={() => setOpen(o => !o)}
+        style={{ width: '100%', textAlign: 'right', background: C.bg, border: `1px solid ${C.text}18`, borderRadius: 8, padding: '10px 12px', color: C.text, fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit' }}>
+        {displayLabel}
+      </button>
+      {open && (
+        <div style={{ position: 'absolute', zIndex: 400, top: 'calc(100% + 6px)', right: 0, width: 272, background: C.bgCard, border: `1px solid ${C.text}22`, borderRadius: 12, padding: 16, boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <button type="button" onClick={prevMonth} style={{ background: 'none', border: 'none', color: C.text, cursor: 'pointer', fontSize: 17, padding: 4, lineHeight: 1 }}>‹</button>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{GREGORIAN_MONTHS_FA[viewMonth]} {viewYear}</div>
+            <button type="button" onClick={nextMonth} style={{ background: 'none', border: 'none', color: C.text, cursor: 'pointer', fontSize: 17, padding: 4, lineHeight: 1 }}>›</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 6 }}>
+            {WEEKDAY_LETTERS_SAT_FIRST.map((l, i) => (
+              <div key={i} style={{ textAlign: 'center', fontSize: 10.5, color: `${C.text}55` }}>{l}</div>
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+            {cells.map((d, i) => {
+              if (d === null) return <div key={i} />;
+              const iso = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+              const isSelected = iso === value;
+              return (
+                <button key={i} type="button" onClick={() => selectDay(d)}
+                  style={{
+                    aspectRatio: '1', border: 'none', borderRadius: 8, cursor: 'pointer',
+                    background: isSelected ? C.accent : 'transparent',
+                    color: isSelected ? C.bg : C.text, fontSize: 12.5, fontWeight: isSelected ? 700 : 400,
+                    fontFamily: "'IBM Plex Mono', monospace",
+                  }}>{d}</button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CustomTimePicker({ value, onChange, C }) {
+  const [h, m] = (value || '').split(':');
+  const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+  const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+  const fld = { flex: 1, background: C.bg, border: `1px solid ${C.text}18`, borderRadius: 8, padding: '10px 8px', color: C.text, fontSize: 13.5 };
+  return (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      <select value={h || ''} onChange={e => onChange(`${e.target.value}:${m || '00'}`)} style={fld}>
+        <option value="">--</option>
+        {hours.map(hh => <option key={hh} value={hh}>{hh}</option>)}
+      </select>
+      <span style={{ color: C.text }}>:</span>
+      <select value={m || ''} onChange={e => onChange(`${h || '00'}:${e.target.value}`)} style={fld}>
+        <option value="">--</option>
+        {minutes.map(mm => <option key={mm} value={mm}>{mm}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function PersonalizationPanel({ theme, updateTheme, resetTheme }) {
+  const [activeTab, setActiveTab] = useState('preset');
+  const [customColors, setCustomColors] = useState(theme);
+  
+  const handleColorChange = (key, value) => {
+    const newColors = { ...customColors, [key]: value };
+    setCustomColors(newColors);
+    updateTheme(newColors);
+  };
+
+  const applyPreset = (preset) => {
+    setCustomColors(preset);
+    updateTheme(preset);
+  };
+
+  return (
+    <div style={{ padding: '4px 0' }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 18, background: theme.bg, borderRadius: 10, padding: 4 }}>
+        <button 
+          onClick={() => setActiveTab('preset')}
+          style={{
+            flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
+            background: activeTab === 'preset' ? theme.accent : 'transparent',
+            color: activeTab === 'preset' ? theme.bg : theme.text,
+            fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          🎨 تم‌های آماده
+        </button>
+        <button 
+          onClick={() => setActiveTab('custom')}
+          style={{
+            flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
+            background: activeTab === 'custom' ? theme.accent : 'transparent',
+            color: activeTab === 'custom' ? theme.bg : theme.text,
+            fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          ✏️ سفارشی‌سازی
+        </button>
+      </div>
+
+      {activeTab === 'preset' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {PRESET_THEMES.map((preset, idx) => {
+            const isActive = theme.accent === preset.accent && theme.bg === preset.bg && theme.positive === preset.positive;
+            return (
+              <button key={idx} onClick={() => applyPreset(preset)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10,
+                  border: `2px solid ${isActive ? preset.accent : 'rgba(255,255,255,0.06)'}`,
+                  background: isActive ? `${preset.accent}18` : 'rgba(255,255,255,0.02)',
+                  cursor: 'pointer', transition: 'all 0.3s ease', width: '100%', textAlign: 'right'
+                }}>
+                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                  <span style={{ display: 'inline-block', width: 20, height: 20, borderRadius: 6, background: preset.accent }} />
+                  <span style={{ display: 'inline-block', width: 20, height: 20, borderRadius: 6, background: preset.positive }} />
+                  <span style={{ display: 'inline-block', width: 20, height: 20, borderRadius: 6, background: preset.negative }} />
+                  <span style={{ display: 'inline-block', width: 20, height: 20, borderRadius: 6, background: preset.navColor }} />
+                </div>
+                <span style={{ fontSize: 12.5, fontWeight: isActive ? 700 : 400, color: theme.text, flex: 1 }}>
+                  {preset.name} {isActive && <span style={{ marginRight: 6, fontSize: 11, color: preset.accent }}>✓</span>}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {activeTab === 'custom' && (
+        <div>
+          <div style={{ fontSize: 11, color: `${theme.text}66`, marginBottom: 14 }}>با انتخاب هر رنگ، کل صفحه به‌صورت زنده تغییر می‌کند</div>
+          {[
+            { key: 'accent', label: 'رنگ اصلی (طلایی)', icon: '✦' },
+            { key: 'navColor', label: 'رنگ کلی نوار شیشه‌ای', icon: '💠' },
+            { key: 'positive', label: 'رنگ سود', icon: '📈' },
+            { key: 'negative', label: 'رنگ زیان', icon: '📉' },
+            { key: 'text', label: 'رنگ متن', icon: '✏️' },
+            { key: 'bg', label: 'پس‌زمینه اصلی', icon: '🖼️' },
+            { key: 'bgCard', label: 'پس‌زمینه کارت‌ها', icon: '📋' },
+          ].map(({ key, label, icon }) => (
+            <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: `1px solid ${theme.text}08` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 14, opacity: 0.6 }}>{icon}</span>
+                <span style={{ fontSize: 12.5, color: `${theme.text}aa` }}>{label}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 10, fontFamily: 'monospace', color: theme.text, opacity: 0.4, direction: 'ltr', display: 'inline-block', width: 60 }}>{theme[key]}</span>
+                <input type="color" value={customColors[key] || theme[key]} onChange={(e) => handleColorChange(key, e.target.value)} style={{ width: 36, height: 36, padding: 0, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'none', outline: `2px solid ${theme.text}15`, outlineOffset: 2 }} />
+              </div>
+            </div>
+          ))}
+          <button onClick={resetTheme} style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', width: '100%', marginTop: 16, padding: '10px', background: 'transparent', border: `1px solid ${theme.text}15`, borderRadius: 8, color: theme.text, opacity: 0.5, fontSize: 12, cursor: 'pointer', transition: 'all 0.3s ease' }} onMouseEnter={(e) => e.currentTarget.style.opacity = 1} onMouseLeave={(e) => e.currentTarget.style.opacity = 0.5}>
+            <RotateCcw size={13} /> بازگشت به رنگ‌های پیش‌فرض
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TradingJournal() {
+  const [theme, setTheme] = useState(DEFAULT_THEME);
+  const [trades, setTrades] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [page, setPage] = useState(0);
+  const [activeNav, setActiveNav] = useState(0);
+  const [showControls, setShowControls] = useState(false);
+  const NAV_ITEMS = [
+    { id: 0, label: 'نمای کلی', icon: LayoutDashboard },
+    { id: 1, label: 'سشن و نماد', icon: Layers },
+    { id: 3, label: 'هفته‌ها و روزها', icon: CalendarDays },
+    { id: 4, label: 'ماتریس و تاریخچه', icon: FileText },
+  ];
+
+  const handleNavClick = (id) => {
+    setPage(id);
+    setActiveNav(id);
+  };
+
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyFilter, setHistoryFilter] = useState('all');
+  const [dateRange, setDateRange] = useState({ from: '', to: '' });
+  const [toast, setToast] = useState(null);
+  const showToast = (msg, tone = 'good') => {
+    const id = Date.now();
+    setToast({ msg, tone, id });
+    setTimeout(() => setToast(t => (t && t.id === id ? null : t)), 2600);
+  };
+  const [accounts, setAccounts] = useState(DEFAULT_ACCOUNTS);
+  const [activeAccountId, setActiveAccountId] = useState('default');
+  const [newAccountName, setNewAccountName] = useState('');
+  const [showAccountManager, setShowAccountManager] = useState(false);
+  const [showSheets, setShowSheets] = useState(false);
+  const [sheetsUrl, setSheetsUrl] = useState('');
+  const [sheetsBusy, setSheetsBusy] = useState(false);
+  const [balance, setBalance] = useState(1000);
+  const [balanceText, setBalanceText] = useState('1000');
+  const [userName, setUserName] = useState('');
+  const [showNamePrompt, setShowNamePrompt] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [strategies, setStrategies] = useState(DEFAULT_STRATEGIES);
+  const [newStrategy, setNewStrategy] = useState('');
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [editingId, setEditingId] = useState(null);
+  const [showAlerts, setShowAlerts] = useState(true);
+  const menuRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  const C = theme;
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const a = await storage.get('journal-accounts');
+        if (a && a.value) setAccounts(JSON.parse(a.value));
+        const aa = await storage.get('journal-active-account');
+        if (aa && aa.value) setActiveAccountId(aa.value);
+        const su = await storage.get('journal-sheets-url');
+        if (su && su.value) setSheetsUrl(su.value);
+      } catch (e) {}
+      try {
+        const res = await storage.get('journal-trades');
+        if (res && res.value) {
+          const parsed = JSON.parse(res.value).map(t => ({ ...t, accountId: t.accountId || 'default', day: weekdayFaFromDate(t.date) || t.day }));
+          setTrades(parsed);
+        } else { const seeded = SEED.map(t => ({ ...t, accountId: 'default' })); setTrades(seeded); await storage.set('journal-trades', JSON.stringify(seeded)); }
+      } catch (e) { setTrades(SEED); }
+      try {
+        const t = await storage.get('journal-theme');
+        if (t && t.value) setTheme(JSON.parse(t.value));
+      } catch (e) {}
+      try {
+        const b = await storage.get('journal-balance');
+        if (b && b.value) { const val = JSON.parse(b.value); setBalance(val); setBalanceText(String(val)); }
+      } catch (e) {}
+      try {
+        const s = await storage.get('journal-strategies');
+        if (s && s.value) setStrategies(JSON.parse(s.value));
+        else await storage.set('journal-strategies', JSON.stringify(DEFAULT_STRATEGIES));
+      } catch (e) {}
+      try {
+        const n = await storage.get('journal-username');
+        if (n && n.value) setUserName(n.value);
+        else setShowNamePrompt(true);
+      } catch (e) { setShowNamePrompt(true); }
+      try {
+        const alerts = await storage.get('journal-alerts');
+        if (alerts && alerts.value) setShowAlerts(JSON.parse(alerts.value));
+      } catch (e) {}
+      setLoading(false);
+    })();
+  }, []);
+
+  useEffect(() => {
+    const onClick = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setShowMenu(false);
+        setShowControls(false);
+        setShowForm(false);
+        setShowAccountManager(false);
+        setShowSheets(false);
+      }
+    };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, []);
+
+  const persistTrades = async (next) => {
+    setTrades(next);
+    try { await storage.set('journal-trades', JSON.stringify(next)); } catch (e) {}
+  };
+
+  const persistAccounts = async (next) => { setAccounts(next); try { await storage.set('journal-accounts', JSON.stringify(next)); } catch (e) {} };
+  const switchAccount = async (id) => {
+    setActiveAccountId(id); try { await storage.set('journal-active-account', id); } catch (e) {}
+    const a = accounts.find(x => x.id === id);
+    if (a) { setBalance(Number(a.balance || 0)); setBalanceText(String(a.balance || 0)); }
+  };
+  const addAccount = async () => {
+    const name = newAccountName.trim(); if (!name) return;
+    const id = 'acc_' + Date.now(); const next = [...accounts, { id, name, balance: 1000, currency: 'USD' }];
+    await persistAccounts(next); setNewAccountName(''); await switchAccount(id); showToast('حساب جدید ساخته شد ✅','good');
+  };
+  const deleteAccount = async (id) => {
+    if (accounts.length <= 1) { showToast('حداقل یک حساب باید باقی بماند', 'bad'); return; }
+    const next = accounts.filter(a => a.id !== id);
+    await persistAccounts(next);
+    const kept = trades.filter(t => (t.accountId || 'default') !== id);
+    await persistTrades(kept);
+
+    if (id === activeAccountId) {
+      const nextActive = next[0];
+      setActiveAccountId(nextActive.id);
+      setBalance(Number(nextActive.balance || 0));
+      setBalanceText(String(nextActive.balance || 0));
+      try { await storage.set('journal-active-account', nextActive.id); } catch (e) {}
+    }
+    showToast('حساب حذف شد', 'neutral');
+  };
+  const updateActiveAccountBalance = async (value) => {
+    const v = Number(value); if (!Number.isFinite(v)) return;
+    const next = accounts.map(a => a.id === activeAccountId ? { ...a, balance: v } : a);
+    await persistAccounts(next); setBalance(v); setBalanceText(String(v));
+  };
+  const saveSheetsUrl = async () => { try { await storage.set('journal-sheets-url', sheetsUrl.trim()); showToast('آدرس Google Sheets ذخیره شد ✅','good'); } catch(e) {} };
+  const pushToGoogleSheets = async () => {
+    if (!sheetsUrl.trim()) { setShowSheets(true); showToast('ابتدا Web App URL گوگل شیت را وارد کن','bad'); return; }
+    setSheetsBusy(true);
+    try {
+      const payload = { account: activeAccount, exportedAt: new Date().toISOString(), trades: activeTrades.map(t => ({ ...t, pips: calcPips(t), r: calcTradeR(t, activeBalance) })) };
+      await fetch(sheetsUrl.trim(), { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+      showToast('داده‌ها برای Google Sheets ارسال شد ✅','good');
+    } catch(e) { showToast('اتصال Google Sheets ناموفق بود','bad'); } finally { setSheetsBusy(false); }
+  };
+
+  const updateTheme = async (patch) => {
+    const next = { ...theme, ...patch };
+    setTheme(next);
+    try { await storage.set('journal-theme', JSON.stringify(next)); } catch (e) {}
+  };
+
+  const resetTheme = () => updateTheme(DEFAULT_THEME);
+
+  const updateBalance = async (val) => {
+    const numeric = Number(val);
+    if (!Number.isFinite(numeric) || numeric < 0) return;
+    setBalance(numeric);
+    setBalanceText(String(numeric));
+    const nextAccounts = accounts.map(a => a.id === activeAccountId ? { ...a, balance: numeric } : a);
+    setAccounts(nextAccounts);
+    try {
+      await storage.set('journal-accounts', JSON.stringify(nextAccounts));
+      await storage.set('journal-balance', JSON.stringify(numeric)); // legacy compatibility
+    } catch (e) {}
+  };
+  const onBalanceTextChange = (raw) => {
+    setBalanceText(raw);
+    const parsed = parseFloat(raw);
+    if (!isNaN(parsed)) updateBalance(parsed);
+  };
+  const onBalanceBlur = () => {
+    if (isNaN(parseFloat(balanceText))) setBalanceText(String(balance));
+  };
+
+  const saveName = async () => {
+    const name = nameInput.trim();
+    if (!name) return;
+    setUserName(name);
+    try { await storage.set('journal-username', name); } catch (e) {}
+    setShowNamePrompt(false);
+  };
+
+  const persistStrategies = async (next) => {
+    setStrategies(next);
+    try { await storage.set('journal-strategies', JSON.stringify(next)); } catch (e) {}
+  };
+  const addStrategyOption = () => {
+    const name = newStrategy.trim();
+    if (!name || strategies.includes(name)) return;
+    persistStrategies([...strategies, name]);
+    setForm({ ...form, strategy: name });
+    setNewStrategy('');
+  };
+  const removeStrategyOption = (name) => {
+    persistStrategies(strategies.filter(s => s !== name));
+    if (form.strategy === name) setForm({ ...form, strategy: '' });
+  };
+
+  const setExitFrom = (source) => {
+    const val = source === 'stop' ? form.stopLoss : form.target;
+    if (val !== '') setForm({ ...form, exitPrice: val });
+  };
+  const calcPnlFromPrices = () => {
+    const entry = parseFloat(form.entryPrice);
+    const exit = parseFloat(form.exitPrice);
+    const vol = parseFloat(form.volume);
+    if (!Number.isFinite(entry) || !Number.isFinite(exit) || !Number.isFinite(vol)) return false;
+
+    const symbol = form.symbol === 'Custom' ? form.customSymbol.trim().toUpperCase() : form.symbol;
+    const mult = SYMBOL_MULTIPLIERS[symbol] || 1;
+    const sign = form.direction === 'خرید' ? 1 : -1;
+    const grossPnl = (exit - entry) * sign * vol * mult;
+    const commission = parseFloat(form.commission) || 0;
+    const swap = parseFloat(form.swap) || 0;
+    const pnl = grossPnl + commission + swap;
+
+    const nextResult = pnl > 0 ? 'win' : pnl < 0 ? 'loss' : 'be';
+    setForm(prev => ({ ...prev, pnl: pnl.toFixed(2), result: nextResult }));
+    return true;
+  };
+
+  useEffect(() => {
+    const entry = parseFloat(form.entryPrice);
+    const exit = parseFloat(form.exitPrice);
+    const vol = parseFloat(form.volume);
+    if (!Number.isFinite(entry) || !Number.isFinite(exit) || !Number.isFinite(vol)) return;
+
+    const symbol = form.symbol === 'Custom' ? form.customSymbol.trim().toUpperCase() : form.symbol;
+    const mult = SYMBOL_MULTIPLIERS[symbol] || 1;
+    const sign = form.direction === 'خرید' ? 1 : -1;
+    const grossPnl = (exit - entry) * sign * vol * mult;
+    const commission = parseFloat(form.commission) || 0;
+    const swap = parseFloat(form.swap) || 0;
+    const pnl = grossPnl + commission + swap;
+    const pnlText = pnl.toFixed(2);
+    const nextResult = pnl > 0 ? 'win' : pnl < 0 ? 'loss' : 'be';
+
+    if (form.pnl !== pnlText || form.result !== nextResult) {
+      setForm(prev => ({ ...prev, pnl: pnlText, result: nextResult }));
+    }
+  }, [form.entryPrice, form.exitPrice, form.volume, form.direction, form.symbol, form.customSymbol, form.commission, form.swap]);
+
+  const addTrade = async () => {
+    const symbol = form.symbol === 'Custom' ? form.customSymbol.trim().toUpperCase() : form.symbol;
+    const pnl = parseFloat(form.pnl);
+    if (!symbol || !Number.isFinite(pnl)) {
+      showToast('نماد و سود/زیان نهایی را وارد کن', 'bad');
+      return;
+    }
+    if (!form.date) {
+      showToast('تاریخ معامله را وارد کن', 'bad');
+      return;
+    }
+    const expectedResult = pnl > 0 ? 'win' : pnl < 0 ? 'loss' : 'be';
+    if (form.result !== expectedResult) {
+      showToast('نتیجه معامله با سود/زیان واردشده سازگار نیست', 'bad');
+      return;
+    }
+    const rr = calcRR(form.entryPrice, form.stopLoss, form.target);
+    const newTrade = {
+      id: Date.now(),
+      accountId: activeAccountId,
+      date: form.date, symbol, session: form.session, day: weekdayFaFromDate(form.date), time: form.time,
+      direction: form.direction, entryPrice: form.entryPrice, stopLoss: form.stopLoss, target: form.target,
+      exitPrice: form.exitPrice, volume: form.volume, strategy: form.strategy, result: form.result,
+      emotion: form.emotion, pnl, rr,
+      commission: parseFloat(form.commission) || 0,
+      swap: parseFloat(form.swap) || 0,
+      riskPercent: parseFloat(form.riskPercent) || 1,
+    };
+
+    let next;
+    if (editingId) {
+      next = trades.map(t => t.id === editingId ? { ...newTrade, id: editingId } : t);
+      showToast('معامله ویرایش شد ✅', 'good');
+      setEditingId(null);
+    } else {
+      next = [...trades, newTrade];
+      showToast(pnl >= 0 ? `معامله ثبت شد — سود ${fmt(pnl)}$ ✅` : `معامله ثبت شد — زیان ${fmt(Math.abs(pnl))}$`, pnl >= 0 ? 'good' : 'bad');
+    }
+    await persistTrades(next);
+    setForm(EMPTY_FORM);
+    setShowForm(false);
+  };
+
+  const deleteTrade = async (id) => { await persistTrades(trades.filter(t => t.id !== id)); showToast('معامله حذف شد', 'neutral'); };
+
+  const editTrade = (trade) => {
+    setForm({
+      date: trade.date, symbol: SYMBOL_PRESETS.includes(trade.symbol) ? trade.symbol : 'Custom', customSymbol: SYMBOL_PRESETS.includes(trade.symbol) ? '' : trade.symbol, session: trade.session,
+      time: trade.time || '', direction: trade.direction,
+      entryPrice: trade.entryPrice || '', stopLoss: trade.stopLoss || '', target: trade.target || '',
+      exitPrice: trade.exitPrice || '', volume: trade.volume || '', strategy: trade.strategy || '',
+      result: trade.result || 'win', emotion: trade.emotion || '', pnl: String(trade.pnl),
+      commission: String(trade.commission || ''), swap: String(trade.swap || ''), riskPercent: String(trade.riskPercent || '1'),
+    });
+    setEditingId(trade.id);
+    setShowForm(true);
+  };
+
+  const exportData = () => {
+    const data = { trades, balance, userName, strategies, theme, accounts, activeAccountId, exportedAt: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `journal-backup-${toLocalISODate(new Date())}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('داده‌ها با موفقیت ذخیره شدند ✅', 'good');
+  };
+
+  const importData = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        const importedAccounts = Array.isArray(data.accounts) && data.accounts.length ? data.accounts : null;
+        if (importedAccounts) {
+          setAccounts(importedAccounts);
+          storage.set('journal-accounts', JSON.stringify(importedAccounts));
+        }
+        const importedActiveId = data.activeAccountId && (!importedAccounts || importedAccounts.some(a => a.id === data.activeAccountId))
+          ? data.activeAccountId
+          : (importedAccounts ? importedAccounts[0].id : null);
+        if (importedActiveId) {
+          setActiveAccountId(importedActiveId);
+          storage.set('journal-active-account', importedActiveId);
+          const importedActive = importedAccounts?.find(a => a.id === importedActiveId);
+          if (importedActive) {
+            setBalance(Number(importedActive.balance || 0));
+            setBalanceText(String(importedActive.balance || 0));
+          }
+        }
+        if (Array.isArray(data.trades)) {
+          persistTrades(data.trades.map(t => ({ ...t, accountId: t.accountId || 'default', day: weekdayFaFromDate(t.date) || t.day })));
+        }
+        if (data.balance !== undefined && data.balance !== null && Number.isFinite(Number(data.balance))) {
+          setBalance(Number(data.balance));
+          setBalanceText(String(data.balance));
+        }
+        if (data.userName) { setUserName(data.userName); storage.set('journal-username', data.userName); }
+        if (data.strategies) { setStrategies(data.strategies); storage.set('journal-strategies', JSON.stringify(data.strategies)); }
+        if (data.theme) { setTheme(data.theme); storage.set('journal-theme', JSON.stringify(data.theme)); }
+        showToast('داده‌ها با موفقیت بازیابی شدند ✅', 'good');
+      } catch (err) { showToast('خطا در خواندن فایل', 'bad'); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const activeTrades = useMemo(() => trades.filter(t => (t.accountId || 'default') === activeAccountId), [trades, activeAccountId]);
+  const activeAccount = accounts.find(a => a.id === activeAccountId) || accounts[0] || DEFAULT_ACCOUNTS[0];
+  const activeBalance = Number(activeAccount?.balance || balance || 0);
+  const stats = useMemo(() => computeStats(activeTrades), [activeTrades]);
+  const netPnlAnimated = useCountUp(stats.netPnl, 700);
+  const bySession = useMemo(() => groupBy(activeTrades, 'session'), [activeTrades]);
+  const bySymbol = useMemo(() => groupBy(activeTrades, 'symbol'), [activeTrades]);
+  const byStrategy = useMemo(() => {
+    const normalized = activeTrades.map(t => ({ ...t, strategy: (t.strategy || '').trim() || 'بدون استراتژی' }));
+    return groupBy(normalized, 'strategy');
+  }, [activeTrades]);
+  const byRR = useMemo(() => {
+    const withRR = activeTrades.filter(t => typeof t.rr === 'number');
+    const map = {};
+    RR_BUCKETS.forEach(b => { map[b] = []; });
+    withRR.forEach(t => { map[rrBucketOf(t.rr)].push(t); });
+    return RR_BUCKETS.map(b => {
+      const list = map[b];
+      const wins = list.filter(t => (t.result ? t.result === 'win' : t.pnl > 0)).length;
+      const winRate = list.length ? (wins / list.length) * 100 : 0;
+      const netPnl = list.reduce((s, t) => s + t.pnl, 0);
+      return { name: b, total: list.length, wins, winRate, netPnl };
+    }).filter(b => b.total > 0);
+  }, [activeTrades]);
+
+  const orderedActiveTrades = useMemo(() => [...activeTrades].sort((a, b) => {
+    const da = `${a.date || ''} ${a.time || '23:59'}`;
+    const db = `${b.date || ''} ${b.time || '23:59'}`;
+    return da.localeCompare(db) || Number(a.id || 0) - Number(b.id || 0);
+  }), [activeTrades]);
+
+  const equityCurve = useMemo(() => {
+    let running = 0;
+    const points = [{ name: 'شروع', equity: 0 }];
+    orderedActiveTrades.forEach((t, i) => {
+      running += Number(t.pnl) || 0;
+      points.push({ name: `#${i + 1}`, equity: Math.round(running * 100) / 100 });
+    });
+    return points;
+  }, [orderedActiveTrades]);
+
+  const calendarEquityCurve = useMemo(() => {
+    if (!activeTrades.length) return [];
+    const dates = [...new Set(activeTrades.map(t => t.date))].sort();
+    const firstDate = dates[0], lastDate = dates[dates.length - 1];
+    const pnlByDate = {};
+    activeTrades.forEach(t => { pnlByDate[t.date] = (pnlByDate[t.date] || 0) + t.pnl; });
+    const points = [{ name: 'شروع', equity: 0 }];
+    let running = 0;
+    let cur = new Date(firstDate + 'T00:00:00');
+    const last = new Date(lastDate + 'T00:00:00');
+    while (cur <= last) {
+      const dow = cur.getDay();
+      if (dow !== 0 && dow !== 6) {
+        const key = toLocalISODate(cur);
+        if (pnlByDate[key] !== undefined) running += pnlByDate[key];
+        points.push({ name: `${weekdayFaFromDate(key)} ${fmtDateShort(cur)}`, equity: Math.round(running * 100) / 100 });
+      }
+      cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1);
+    }
+    return points;
+  }, [activeTrades]);
+
+  const calendarEquityPeak = calendarEquityCurve.length ? Math.max(0, ...calendarEquityCurve.map(e => e.equity)) : 0;
+  const calendarEquityLow = calendarEquityCurve.length ? Math.min(0, ...calendarEquityCurve.map(e => e.equity)) : 0;
+  const calendarEquityCurrent = calendarEquityCurve.length ? calendarEquityCurve[calendarEquityCurve.length - 1].equity : 0;
+  const calendarEquityCurrentAnimated = useCountUp(calendarEquityCurrent, 700);
+  const equityPeak = equityCurve.length ? Math.max(0, ...equityCurve.map(e => e.equity)) : 0;
+  const equityLow = equityCurve.length ? Math.min(0, ...equityCurve.map(e => e.equity)) : 0;
+  const equityCurrent = equityCurve.length ? equityCurve[equityCurve.length - 1].equity : 0;
+  const equityCurrentAnimated = useCountUp(equityCurrent, 700);
+
+  const matrix = useMemo(() => {
+    const symbols = [...new Set(activeTrades.map(t => t.symbol))];
+    const cells = {};
+    activeTrades.forEach(t => {
+      const key = `${t.symbol}|${t.session}`;
+      if (!cells[key]) cells[key] = { pnl: 0, count: 0 };
+      cells[key].pnl += t.pnl; cells[key].count += 1;
+    });
+    let bestKey = null, bestVal = -Infinity, worstKey = null, worstVal = Infinity;
+    Object.entries(cells).forEach(([k, v]) => {
+      if (v.pnl > bestVal) { bestVal = v.pnl; bestKey = k; }
+      if (v.pnl < worstVal) { worstVal = v.pnl; worstKey = k; }
+    });
+    const maxAbs = Math.max(1, ...Object.values(cells).map(v => Math.abs(v.pnl)));
+    return { symbols, cells, bestKey, worstKey, maxAbs };
+  }, [activeTrades]);
+
+  const bestSession = bySession[0];
+  const bestSymbol = bySymbol[0];
+  const worstSession = bySession.length ? bySession[bySession.length - 1] : null;
+  const worstSymbol = bySymbol.length ? bySymbol[bySymbol.length - 1] : null;
+  const bestStrategy = byStrategy[0];
+  const worstStrategy = byStrategy.length ? byStrategy[byStrategy.length - 1] : null;
+
+  const byDayOrdered = useMemo(() => {
+    const grouped = groupBy(activeTrades, 'day');
+    const map = {};
+    grouped.forEach(g => { map[g.name] = g; });
+    return DAYS.map(d => map[d] || { name: d, total: 0, netPnl: 0, winRate: 0, wins: 0, losses: 0 });
+  }, [activeTrades]);
+
+  const dayAvgStats = useMemo(() => {
+    const dateMap = {};
+    activeTrades.forEach(t => {
+      if (!t.day) return;
+      if (!dateMap[t.date]) dateMap[t.date] = { day: t.day, pnl: 0 };
+      dateMap[t.date].pnl += t.pnl;
+    });
+    return DAYS.map(day => {
+      const occurrencesArr = Object.values(dateMap).filter(v => v.day === day);
+      const occurrences = occurrencesArr.length;
+      const totalPnl = occurrencesArr.reduce((s, v) => s + v.pnl, 0);
+      const totalPercent = activeBalance > 0 ? (totalPnl / activeBalance) * 100 : 0;
+      const avgPercent = occurrences ? totalPercent / occurrences : 0;
+      const avgPnl = occurrences ? totalPnl / occurrences : 0;
+      return { name: day, occurrences, totalPnl, totalPercent, avgPercent, avgPnl };
+    });
+  }, [activeTrades, activeBalance]);
+
+  const worstDay = dayAvgStats.filter(d => d.occurrences > 0).sort((a, b) => a.avgPercent - b.avgPercent)[0] || null;
+  const bestDay = dayAvgStats.filter(d => d.occurrences > 0).sort((a, b) => b.avgPercent - a.avgPercent)[0] || null;
+
+  const weeklyStats = useMemo(() => {
+    if (!activeTrades.length) return [];
+    const byWeek = {};
+    activeTrades.forEach(t => {
+      const w = weekInfoFromDate(t.date);
+      if (!w) return;
+      if (!byWeek[w.key]) byWeek[w.key] = { key: w.key, start: w.start, end: w.end, pnl: 0, count: 0, wins: 0 };
+      byWeek[w.key].pnl += t.pnl;
+      byWeek[w.key].count += 1;
+      if (t.pnl > 0) byWeek[w.key].wins += 1;
+    });
+    return Object.values(byWeek).sort((a, b) => a.key.localeCompare(b.key)).map((w, i) => ({
+      name: `هفته ${i + 1}`,
+      range: `${fmtDateShort(w.start)} تا ${fmtDateShort(w.end)}`,
+      netPnl: Math.round(w.pnl * 100) / 100,
+      pips: Math.round(activeTrades.filter(t => { const wi = weekInfoFromDate(t.date); return wi && wi.key === w.key; }).reduce((s,t) => s + calcPips(t), 0) * 10) / 10,
+      r: Math.round(activeTrades.filter(t => { const wi = weekInfoFromDate(t.date); return wi && wi.key === w.key; }).reduce((s,t) => s + calcTradeR(t, activeBalance), 0) * 100) / 100,
+      percent: activeBalance > 0 ? (w.pnl / activeBalance) * 100 : 0,
+      count: w.count,
+      winRate: w.count ? (w.wins / w.count) * 100 : 0,
+    }));
+  }, [activeTrades, activeBalance]);
+
+  const currentWeekInfo = useMemo(() => weekInfoFromDate(toLocalISODate(new Date())), []);
+  const currentWeekTrades = useMemo(() => {
+    if (!currentWeekInfo) return [];
+    return activeTrades.filter(t => { const w = weekInfoFromDate(t.date); return w && w.key === currentWeekInfo.key; });
+  }, [activeTrades, currentWeekInfo]);
+  const currentWeekStats = useMemo(() => computeStats(currentWeekTrades), [currentWeekTrades]);
+  const currentWeekPercent = activeBalance > 0 ? (currentWeekStats.netPnl / activeBalance) * 100 : 0;
+
+  const emotionStats = useMemo(() => {
+    const map = {};
+    activeTrades.forEach(t => {
+      if (!t.emotion) return;
+      if (!map[t.emotion]) map[t.emotion] = { count: 0, pnl: 0, wins: 0 };
+      map[t.emotion].count += 1;
+      map[t.emotion].pnl += t.pnl;
+      if (t.pnl > 0) map[t.emotion].wins += 1;
+    });
+    return Object.entries(map).map(([name, data]) => ({
+      name, count: data.count, pnl: data.pnl, winRate: data.count ? (data.wins / data.count) * 100 : 0,
+    })).sort((a, b) => b.pnl - a.pnl);
+  }, [activeTrades]);
+
+  const hourlyStats = useMemo(() => {
+    const map = {};
+    activeTrades.forEach(t => {
+      if (!t.time) return;
+      const hour = t.time.split(':')[0];
+      if (!map[hour]) map[hour] = { count: 0, pnl: 0 };
+      map[hour].count += 1;
+      map[hour].pnl += t.pnl;
+    });
+    return Object.entries(map).map(([hour, data]) => ({ hour: `${hour}:00`, count: data.count, pnl: data.pnl, })).sort((a, b) => parseInt(a.hour) - parseInt(b.hour));
+  }, [activeTrades]);
+
+  const insights = useMemo(() => {
+    const list = [];
+    if (activeTrades.length < 5) return list;
+    if (matrix.worstKey) {
+      const [sym, sess] = matrix.worstKey.split('|');
+      const cell = matrix.cells[matrix.worstKey];
+      if (cell.pnl < 0) list.push({ tone: 'bad', text: `طبق معاملاتت، بهتره روی ${sym} در سشن ${sess} ترید نکنی — اونجا در مجموع ${fmt(cell.pnl)}$ ضرر دادی.` });
+    }
+    if (matrix.bestKey && matrix.bestKey !== matrix.worstKey) {
+      const [sym, sess] = matrix.bestKey.split('|');
+      const cell = matrix.cells[matrix.bestKey];
+      if (cell.pnl > 0) list.push({ tone: 'good', text: `در مقابل، بهترین ترکیبت ${sym} در سشن ${sess} هست — ${fmt(cell.pnl)}$ سود از اونجا اومده.` });
+    }
+    if (worstDay && worstDay.avgPercent < 0) {
+      list.push({ tone: 'bad', text: `روزهای ${worstDay.name} برات ضعیف بودن — به‌طور میانگین ${fmt(Math.abs(worstDay.avgPercent), 2)}٪ ضرر در هر ${worstDay.name}. شاید بهتره اون روز کمتر یا محتاط‌تر معامله کنی.` });
+    }
+    if (bestDay && bestDay.avgPercent > 0 && bestDay.name !== (worstDay && worstDay.name)) {
+      list.push({ tone: 'good', text: `${bestDay.name}‌ها بهترین روزهات هستن — میانگین ${fmt(bestDay.avgPercent, 2)}٪ سود در هر ${bestDay.name}.` });
+    }
+    if (worstStrategy && byStrategy.length > 1 && worstStrategy.netPnl < 0) {
+      list.push({ tone: 'bad', text: `استراتژی «${worstStrategy.name}» ضعیف‌ترین عملکرد رو داشته (وین‌ریت ${fmt(worstStrategy.winRate, 0)}٪، ${fmt(worstStrategy.netPnl)}$) — ارزش بازبینی داره.` });
+    }
+    if (bestStrategy && byStrategy.length > 1 && bestStrategy.netPnl > 0 && bestStrategy.name !== (worstStrategy && worstStrategy.name)) {
+      list.push({ tone: 'good', text: `استراتژی «${bestStrategy.name}» بهترین نتیجه رو داده — وین‌ریت ${fmt(bestStrategy.winRate, 0)}٪ و ${fmt(bestStrategy.netPnl)}$ سود.` });
+    }
+    return list;
+  }, [activeTrades, matrix, worstDay, bestDay, worstStrategy, bestStrategy, byStrategy]);
+
+  const riskUnit = activeBalance > 0 ? activeBalance * 0.01 : 0;
+  const rStats = useMemo(() => computeRStats(activeTrades, riskUnit), [activeTrades, riskUnit]);
+
+  const totalPips = useMemo(() => activeTrades.reduce((sum, t) => sum + calcPips(t), 0), [activeTrades]);
+  const rAdvanced = useMemo(() => {
+    let cumulative = 0, peak = 0, maxDrawdown = 0;
+    const rows = orderedActiveTrades.map((t,i) => { const r = calcTradeR(t, activeBalance); cumulative += r; peak = Math.max(peak,cumulative); maxDrawdown = Math.max(maxDrawdown,peak-cumulative); return { name:`#${i+1}`, r:Math.round(r*100)/100, cumulativeR:Math.round(cumulative*100)/100, drawdownR:Math.round((peak-cumulative)*100)/100 }; });
+    const rs = rows.map(x=>x.r); const wins=rs.filter(x=>x>0), losses=rs.filter(x=>x<0).map(Math.abs);
+    const expectancy = rs.length ? rs.reduce((a,b)=>a+b,0)/rs.length : 0;
+    const avgWin = wins.length ? wins.reduce((a,b)=>a+b,0)/wins.length : 0;
+    const avgLoss = losses.length ? losses.reduce((a,b)=>a+b,0)/losses.length : 0;
+    return { rows, cumulativeR:cumulative, maxDrawdownR:maxDrawdown, expectancy, avgWin, avgLoss, payoff:avgLoss?avgWin/avgLoss:0 };
+  }, [orderedActiveTrades, activeBalance]);
+
+  const RESULT_META = {
+    win: { label: 'برد', color: C.positive },
+    loss: { label: 'باخت', color: C.negative },
+    be: { label: 'سر به سر', color: C.accent },
+  };
+
+  const filteredTrades = useMemo(() => {
+    const q = historySearch.trim().toLowerCase();
+    return [...activeTrades].reverse().filter(t => {
+      const matchesQuery = !q || t.symbol.toLowerCase().includes(q) || (t.strategy || '').toLowerCase().includes(q) || (t.session || '').toLowerCase().includes(q);
+      const matchesFilter = historyFilter === 'all' || resultOf(t) === historyFilter;
+      let matchesDate = true;
+      if (dateRange.from) matchesDate = matchesDate && t.date >= dateRange.from;
+      if (dateRange.to) matchesDate = matchesDate && t.date <= dateRange.to;
+      return matchesQuery && matchesFilter && matchesDate;
+    });
+  }, [activeTrades, historySearch, historyFilter, dateRange]);
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload || !payload.length) return null;
+    return (
+      <div style={{ background: C.bgAlt, border: '1px solid #ffffff22', borderRadius: 8, padding: '10px 14px', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>
+        <div style={{ color: '#c7ccd6', marginBottom: 4 }}>{label}</div>
+        {payload.map((p, i) => (
+          <div key={i} style={{ color: p.value >= 0 ? C.positive : C.negative }}>{p.name ? `${p.name}: ` : ''}{fmt(p.value)}$</div>
+        ))}
+      </div>
+    );
+  };
+
+  const StatCard = ({ label, value, sub, tone }) => {
+    const color = tone === 'good' ? C.positive : tone === 'bad' ? C.negative : C.accent;
+    const glow = tone === 'good' ? C.positive : tone === 'bad' ? C.negative : C.accent;
+    const ref = useRef(null);
+    const onMove = (e) => {
+      const el = ref.current; if (!el) return;
+      const r = el.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width - 0.5;
+      const py = (e.clientY - r.top) / r.height - 0.5;
+      el.style.transform = `perspective(600px) rotateX(${-py * 8}deg) rotateY(${px * 8}deg) translateY(-3px)`;
+    };
+    const onLeave = () => { if (ref.current) ref.current.style.transform = 'perspective(600px) rotateX(0) rotateY(0) translateY(0)'; };
+    return (
+      <div ref={ref} className="stat-card glass-effect" onMouseMove={onMove} onMouseLeave={onLeave}
+        style={{ borderRadius: 12, padding: '22px 24px', boxShadow: `0 8px 20px ${glow}0f` }}>
+        <div style={{ fontSize: 11, letterSpacing: '0.07em', color: `${C.text}66`, textTransform: 'uppercase', fontFamily: "'IBM Plex Mono', monospace" }}>{label}</div>
+        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 26, fontWeight: 500, color, marginTop: 12 }}>{value}</div>
+        {sub && <div style={{ fontSize: 12, color: `${C.text}77`, marginTop: 6 }}>{sub}</div>}
+      </div>
+    );
+  };
+
+  const DualRateCard = ({ label, rightValue, rightSub, leftValue, leftSub, sub }) => (
+    <div className="stat-card glass-effect" style={{ borderRadius: 12, padding: '22px 24px', boxShadow: `0 8px 20px ${C.accent}0f` }}>
+      <div style={{ fontSize: 11, letterSpacing: '0.07em', color: `${C.text}66`, textTransform: 'uppercase', fontFamily: "'IBM Plex Mono', monospace" }}>{label}</div>
+      <div style={{ display: 'flex', marginTop: 12 }}>
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 22, fontWeight: 500, color: C.accent }}>{rightValue}</div>
+          <div style={{ fontSize: 10, color: `${C.text}66`, marginTop: 4 }}>{rightSub}</div>
+        </div>
+        <div style={{ width: 1, background: `${C.text}18`, margin: '2px 12px' }} />
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 22, fontWeight: 500, color: C.accent }}>{leftValue}</div>
+          <div style={{ fontSize: 10, color: `${C.text}66`, marginTop: 4 }}>{leftSub}</div>
+        </div>
+      </div>
+      {sub && <div style={{ fontSize: 12, color: `${C.text}77`, marginTop: 10 }}>{sub}</div>}
+    </div>
+  );
+
+  const sectionLabel = (txt) => (
+    <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, letterSpacing: '0.08em', color: `${C.text}77`, textTransform: 'uppercase', marginBottom: 20 }}>{txt}</div>
+  );
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: DEFAULT_THEME.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 size={28} color={DEFAULT_THEME.accent} className="animate-spin" />
+      </div>
+    );
+  }
+
+  if (showNamePrompt) {
+    return (
+      <div dir="rtl" style={{
+        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+        fontFamily: "'Vazirmatn', 'Inter', sans-serif", color: DEFAULT_THEME.text,
+        background: `radial-gradient(ellipse 900px 500px at 15% -5%, ${DEFAULT_THEME.accent}22, transparent 60%), ${DEFAULT_THEME.bg}`,
+      }}>
+        <div className="modal-panel" style={{ background: DEFAULT_THEME.bgCard, border: `1px solid ${DEFAULT_THEME.text}18`, borderRadius: 18, padding: 34, width: '100%', maxWidth: 420, textAlign: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
+            <Logo accent={DEFAULT_THEME.accent} size={46} />
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>به ژورنال معاملاتی خوش اومدی</div>
+          <div style={{ fontSize: 13, color: `${DEFAULT_THEME.text}88`, marginBottom: 24, lineHeight: 1.8 }}>
+            برای اینکه داشبورد مخصوص خودت باشه، اول اسمت رو وارد کن. این فقط همین یک بار پرسیده می‌شه.
+          </div>
+          <input
+            autoFocus placeholder="مثلاً مسعود مرادی" value={nameInput}
+            onChange={e => setNameInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && saveName()}
+            style={{ width: '100%', background: DEFAULT_THEME.bg, border: `1px solid ${DEFAULT_THEME.text}22`, borderRadius: 10, padding: '13px 16px', color: DEFAULT_THEME.text, fontSize: 15, textAlign: 'center', marginBottom: 18 }}
+          />
+          <button onClick={saveName} disabled={!nameInput.trim()}
+            style={{ width: '100%', background: DEFAULT_THEME.accent, color: DEFAULT_THEME.bg, border: 'none', borderRadius: 10, padding: '13px', fontWeight: 700, fontSize: 14, cursor: nameInput.trim() ? 'pointer' : 'not-allowed', opacity: nameInput.trim() ? 1 : 0.5 }}>
+            شروع کن
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div dir="rtl" className="app-shell" style={{
+      minHeight: '100vh', color: C.text,
+      '--card-color': C.bgCard, '--accent-color': C.accent, '--nav-color': C.navColor, fontFamily: "'Vazirmatn', 'Inter', sans-serif", transition: 'background .3s, color .3s',
+      background: `
+        radial-gradient(ellipse 900px 500px at 15% -5%, ${C.accent}22, transparent 60%),
+        radial-gradient(ellipse 700px 500px at 100% 20%, ${C.positive}14, transparent 55%),
+        radial-gradient(ellipse 800px 600px at 50% 110%, ${C.accent}12, transparent 60%),
+        ${C.bg}`,
+      backgroundSize: '100% 100%, 100% 100%, 100% 100%, 100% 100%',
+    }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { height: 8px; width: 8px; }
+        input, select { font-family: inherit; }
+        button { -webkit-tap-highlight-color: transparent; }
+        button:active { transform: scale(0.96); }
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes panelIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+        input[type=color] { -webkit-appearance: none; border: none; padding: 0; width: 36px; height: 36px; border-radius: 8px; overflow: hidden; cursor: pointer; background: none; }
+        input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type=color]::-webkit-color-swatch { border: none; border-radius: 8px; }
+        @media (max-width: 720px) { .ss-grid { grid-template-columns: 1fr !important; } }
+        @media (max-width: 520px) {
+          .floating-nav-wrapper { bottom: 10px; width: calc(100vw - 16px); max-width: none; }
+          .floating-nav { padding: 7px 6px; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+          .nav-btn-item { width: 54px; height: 58px; border-radius: 16px; gap: 2px; }
+          .nav-btn-item svg { width: 19px; height: 19px; }
+          .nav-btn-item span { font-size: 8.5px; }
+          .nav-add-btn { width: 48px; height: 48px; margin: 0 auto; margin-top: -15px; }
+          .nav-add-btn svg { width: 23px; height: 23px; }
+        }
+        @media (max-width: 380px) {
+          .nav-btn-item { width: 48px; }
+          .nav-btn-item span { font-size: 8px; }
+          .nav-add-btn { width: 44px; height: 44px; }
+        }
+        
+        @keyframes bgDrift {
+          0%, 100% { background-position: 0% 0%, 100% 0%, 50% 100%, 0 0; }
+          50% { background-position: 20% 15%, 80% 25%, 55% 90%, 0 0; }
+        }
+        
+        @keyframes pageIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .page-fade { animation: pageIn 0.45s ease-out; }
+        
+        @keyframes toastIn { from { opacity: 0; transform: translateY(-14px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .toast-anim { animation: toastIn 0.35s ease-out; }
+        
+        @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-backdrop { animation: backdropIn 0.25s ease-out; }
+        
+        @keyframes modalIn { from { opacity: 0; transform: perspective(1000px) translateY(26px) scale(0.94) rotateX(4deg); } to { opacity: 1; transform: perspective(1000px) translateY(0) scale(1) rotateX(0); } }
+        .modal-panel { animation: modalIn 0.38s cubic-bezier(0.16, 1, 0.3, 1); transform-origin: top center; }
+        
+        .stat-card { transition: transform 0.25s ease, box-shadow 0.25s ease; will-change: transform; transform-style: preserve-3d; }
+        .stat-card:hover { box-shadow: 0 14px 32px rgba(0,0,0,0.3); }
+        .stat-card:active { transform: scale(0.98) !important; }
+        
+        .icon-badge { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .icon-badge:hover { transform: translateY(-2px) scale(1.05); }
+        
+        /* ===== 1.4.1 polish / performance ===== */
+        .glass-effect { contain: paint; }
+        .stat-card { will-change: auto; transform-style: flat; }
+        .floating-nav { contain: layout paint; }
+        .floating-nav .slider-indicator { will-change: right; }
+
+        /* نشانگر پایین: دقیقاً درون سلول خودش می‌ماند */
+        .floating-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        .slider-indicator {
+          top: 7px !important;
+          bottom: 7px !important;
+          height: auto !important;
+          width: calc((100% - 12px) / 5) !important;
+          border-radius: 22px !important;
+        }
+        .slider-indicator.pos-1 { right: 6px !important; }
+        .slider-indicator.pos-2 { right: calc(6px + (100% - 12px) / 5) !important; }
+        .slider-indicator.pos-3 { right: calc(6px + 2 * (100% - 12px) / 5) !important; }
+        .slider-indicator.pos-4 { right: calc(6px + 3 * (100% - 12px) / 5) !important; }
+        .slider-indicator.pos-5 { right: calc(6px + 4 * (100% - 12px) / 5) !important; }
+
+
+        .mobile-user-badge { display: none; }
+
+        @media (max-width: 520px) {
+          /* انتقال نام کاربر به فضای خالی سمت چپ داشبورد */
+          .hero-in { position: relative !important; }
+          .desktop-user-badge { display: none !important; }
+          .mobile-user-badge {
+            display: flex;
+            position: absolute;
+            left: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+            direction: rtl;
+            text-align: right;
+            padding: 8px 12px;
+            border-radius: 14px;
+            background: color-mix(in srgb, var(--card-color) 62%, transparent);
+            border: 1px solid rgba(255,255,255,.10);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 8px 24px rgba(0,0,0,.08);
+            z-index: 2;
+          }
+          .mobile-user-name { font-size: 13px; font-weight: 650; white-space: nowrap; }
+          .mobile-user-online { font-size: 10px; opacity: .68; white-space: nowrap; }
+          .mobile-user-online span { color: var(--accent-color); margin-left: 3px; }
+        }
+
+        /* فضای خالی آزاردهنده در موبایل */
+        @media (max-width: 520px) {
+          .floating-nav { padding: 6px 6px !important; }
+          .nav-btn-item { width: 100% !important; }
+          .hero-in {
+            margin-bottom: 22px !important;
+            gap: 14px !important;
+          }
+          .hero-in > div:first-child {
+            width: 100%;
+            min-width: 0;
+          }
+          .hero-in > div:first-child > div:last-child {
+            min-width: 0;
+          }
+          .hero-in h1 {
+            font-size: 26px !important;
+            line-height: 1.35 !important;
+          }
+          .hero-in .dashboard-user-badge {
+            display: inline-block;
+            margin-inline-start: 6px;
+          }
+          .hero-in > div:last-child {
+            width: 100%;
+            justify-content: flex-start !important;
+          }
+          .hero-in + * { margin-top: 0 !important; }
+        }
+
+        /* دو دور چرخش آرامِ دکمه ثبت معامله، هر ۱۰ ثانیه */
+        @keyframes addButtonTwoTurns {
+          0%, 82% { transform: rotate(0deg); }
+          87% { transform: rotate(360deg); }
+          92% { transform: rotate(720deg); }
+          100% { transform: rotate(720deg); }
+        }
+        .nav-add-btn.attention-spin {
+          animation: addButtonTwoTurns 10s ease-in-out infinite;
+          transform-origin: center;
+          will-change: transform;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .nav-add-btn.attention-spin { animation: none; }
+        }
+
+        @media print {
+          .no-print { display: none !important; }
+          body { background: white !important; }
+          .stat-card { box-shadow: none !important; border: 1px solid #ddd !important; }
+        }
+      `}</style>
+
+      {/* ===== هدر مدیریتی (منوی کشویی) ===== */}
+      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '14px 18px 0' }}>
+        <div className="glass-effect" style={{ borderRadius: 14, overflow: 'hidden' }}>
+          <button 
+            onClick={() => setShowControls(v => !v)}
+            style={{
+              width: '100%', background: 'transparent', border: 'none', color: C.text, 
+              padding: '14px 18px', cursor: 'pointer', display: 'flex', 
+              justifyContent: 'space-between', alignItems: 'center', fontSize: 14, fontWeight: 700
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="icon-float">⚙️</span> تنظیمات و مدیریت حساب‌ها
+            </span>
+            <span style={{ transform: showControls ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease' }}>▼</span>
+          </button>
+
+          {showControls && (
+            <div className="dropdown-open" style={{ padding: '0 18px 18px', borderTop: `1px solid ${C.text}18` }}>
+              {/* ردیف ۱: حساب و موجودی */}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', paddingTop: 14, marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, color: `${C.text}77` }}>حساب فعال:</span>
+                  <select value={activeAccountId} onChange={e => switchAccount(e.target.value)} style={{ background: C.bg, border: `1px solid ${C.accent}44`, color: C.text, borderRadius: 8, padding: '8px 12px', fontFamily: 'inherit' }}>
+                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  </select>
+                </div>
+                <button onClick={() => setShowAccountManager(v => !v)} className="ripple-btn" style={{ background: `${C.accent}18`, color: C.accent, border: `1px solid ${C.accent}35`, borderRadius: 8, padding: '8px 11px', cursor: 'pointer' }}>
+                  <span className="icon-spin">⚙️</span> مدیریت حساب‌ها
+                </button>
+                <button onClick={() => setShowSheets(v => !v)} className="ripple-btn" style={{ background: `${C.positive}18`, color: C.positive, border: `1px solid ${C.positive}35`, borderRadius: 8, padding: '8px 11px', cursor: 'pointer' }}>
+                  <span className="icon-bounce">📊</span> Google Sheets
+                </button>
+              </div>
+
+              {/* محتویات مدیریت حساب */}
+              {showAccountManager && (
+                <div className="dropdown-open" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+                  <input value={newAccountName} onChange={e => setNewAccountName(e.target.value)} placeholder="نام حساب جدید" style={{ background: C.bg, border: `1px solid ${C.text}20`, color: C.text, borderRadius: 8, padding: '8px 10px' }} />
+                  <button onClick={addAccount} className="ripple-btn" style={{ background: C.accent, color: C.bg, border: 0, borderRadius: 8, padding: '8px 12px', cursor: 'pointer' }}>
+                    <span className="icon-bounce">+</span> افزودن حساب
+                  </button>
+                  <button onClick={() => updateActiveAccountBalance(prompt('موجودی اولیه/فعلی حساب', String(activeBalance)))} className="ripple-btn" style={{ background: `${C.text}10`, color: C.text, border: `1px solid ${C.text}20`, borderRadius: 8, padding: '8px 12px', cursor: 'pointer' }}>
+                    <span className="icon-float">💰</span> موجودی: {fmt(activeBalance, 2)}$
+                  </button>
+                  {accounts.length > 1 && <button onClick={() => deleteAccount(activeAccountId)} className="ripple-btn" style={{ background: `${C.negative}14`, color: C.negative, border: `1px solid ${C.negative}30`, borderRadius: 8, padding: '8px 12px', cursor: 'pointer' }}>
+                    <span className="icon-pulse">🗑️</span> حذف حساب فعال
+                  </button>}
+                </div>
+              )}
+
+              {/* محتویات گوگل شیت */}
+              {showSheets && (
+                <div className="dropdown-open" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <input value={sheetsUrl} onChange={e => setSheetsUrl(e.target.value)} placeholder="Google Apps Script Web App URL" style={{ flex: 1, minWidth: 240, background: C.bg, border: `1px solid ${C.text}20`, color: C.text, borderRadius: 8, padding: '8px 10px', direction: 'ltr' }} />
+                  <button onClick={saveSheetsUrl} className="ripple-btn" style={{ background: `${C.text}10`, color: C.text, border: `1px solid ${C.text}20`, borderRadius: 8, padding: '8px 12px', cursor: 'pointer' }}>
+                    <span className="icon-float">💾</span> ذخیره
+                  </button>
+                  <button disabled={sheetsBusy} onClick={pushToGoogleSheets} className="ripple-btn" style={{ background: C.positive, color: C.bg, border: 0, borderRadius: 8, padding: '8px 12px', cursor: 'pointer' }}>
+                    <span className="icon-spin">📤</span> {sheetsBusy ? 'در حال ارسال…' : 'ارسال معاملات به شیت'}
+                  </button>
+                </div>
+              )}
+
+              {/* نمایش پیپ و R */}
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.text}14` }}>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: C.accent }}>
+                  <span className="icon-pulse">📈</span> PIPS <b>{totalPips >= 0 ? '+' : ''}{fmt(totalPips, 1)}</b> · R <b>{rAdvanced.cumulativeR >= 0 ? '+' : ''}{fmt(rAdvanced.cumulativeR, 2)}R</b>
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {toast && (
+        <div className="toast-anim" style={{
+          position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 500,
+          background: C.bgCard, border: `1px solid ${toast.tone === 'good' ? C.positive : toast.tone === 'bad' ? C.negative : C.text}55`,
+          color: C.text, padding: '13px 22px', borderRadius: 12, fontSize: 13, fontWeight: 600,
+          boxShadow: '0 12px 30px rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', gap: 8, maxWidth: '90vw',
+        }}>
+          <span>{toast.tone === 'good' ? '✅' : toast.tone === 'bad' ? '⚠️' : 'ℹ️'}</span>
+          <span>{toast.msg}</span>
+        </div>
+      )}
+
+      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '24px 28px 160px' }}>
+
+        {/* Header */}
+        <div className="hero-in" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+            <Logo accent={C.accent} />
+            <div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: '0.09em', color: C.accent, textTransform: 'uppercase', marginBottom: 10 }}>
+                <span className="icon-glow">✦</span> ژورنال معاملاتی
+              </div>
+              <h1 style={{ fontSize: 30, fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span className="animate-float">📊</span> داشبورد عملکرد
+                <span className="dashboard-user-badge desktop-user-badge" style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>— {userName || 'معامله‌گر'} <span className="animate-pulse" style={{ fontSize: 10, color: C.accent }}>● آنلاین</span></span>
+              </h1>
+            </div>
+          </div>
+
+          <div className="mobile-user-badge" aria-label="وضعیت کاربر">
+            <span className="mobile-user-name">— {userName || 'معامله‌گر'}</span>
+            <span className="mobile-user-online"><span>●</span> آنلاین</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={exportData} className="icon-badge no-print" style={{ background: C.bgCard, border: `1px solid ${C.text}14`, borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <span className="icon-float"><Download size={16} color={C.text} /></span>
+            </button>
+            <button onClick={() => fileInputRef.current?.click()} className="icon-badge no-print" style={{ background: C.bgCard, border: `1px solid ${C.text}14`, borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <span className="icon-bounce"><Upload size={16} color={C.text} /></span>
+            </button>
+            <input ref={fileInputRef} type="file" accept=".json" onChange={importData} style={{ display: 'none' }} />
+
+            <ProfileAvatar accent={C.accent} name={userName} />
+            <div style={{ position: 'relative' }} ref={menuRef}>
+              <button onClick={(e) => { setShowMenu(v => !v); createRipple(e, `${C.accent}55`); }} className="icon-badge ripple-btn"
+                style={{ background: C.bgCard, border: `1px solid ${C.text}14`, borderRadius: 10, width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
+                <span className="icon-spin"><MoreVertical size={18} color={C.text} /></span>
+              </button>
+
+              {showMenu && (
+              <div style={{ position: 'absolute', left: 0, top: 50, width: 340, background: C.bgCard, border: `1px solid ${C.text}18`, borderRadius: 14, padding: 22, zIndex: 200, boxShadow: '0 20px 50px rgba(0,0,0,0.5)', maxHeight: '90vh', overflowY: 'auto' }}>
+                <div style={{ fontSize: 12, color: `${C.text}88`, marginBottom: 8 }}>نام نمایشی</div>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                  <input value={userName} onChange={e => setUserName(e.target.value)} onBlur={() => { const n = userName.trim(); if (n) storage.set('journal-username', n); }}
+                    style={{ flex: 1, background: C.bg, border: `1px solid ${C.text}18`, borderRadius: 8, padding: '9px 12px', color: C.text, fontSize: 13 }} />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span className="icon-pulse"><AlertTriangle size={15} color={C.accent} /></span>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>هشدارها</div>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: `${C.text}aa`, marginBottom: 18 }}>
+                  <input type="checkbox" checked={showAlerts} onChange={e => { setShowAlerts(e.target.checked); storage.set('journal-alerts', JSON.stringify(e.target.checked)); }} />
+                  فعال‌سازی هشدار برای باخت‌های متوالی و ضررهای بزرگ
+                </label>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+                  <span className="icon-glow"><Palette size={15} color={C.accent} /></span>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>شخصی‌سازی ظاهر</div>
+                  <span style={{ fontSize: 10, color: `${C.text}33`, marginRight: 'auto' }}>ذخیره خودکار</span>
+                </div>
+                
+                <PersonalizationPanel theme={C} updateTheme={updateTheme} resetTheme={resetTheme} />
+
+                <div style={{ borderTop: `1px solid ${C.text}14`, marginTop: 16, paddingTop: 16 }}>
+                  <div style={{ fontSize: 11, color: `${C.text}55`, textAlign: 'center' }}>
+                    <span className="icon-breathe">{trades.length}</span> معامله · <span className="icon-pulse" style={{ color: C.positive }}>{stats.wins}</span> برد · <span className="icon-pulse" style={{ color: C.negative }}>{stats.losses}</span> باخت
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          </div>
+        </div>
+
+        {/* PAGE 0 */}
+        {page === 0 && (
+          <div key={page} className="page-fade">
+            {sectionLabel('💰 موجودی اولیه حساب')}
+            <div className="glass-effect" style={{ borderRadius: 14, padding: '22px 26px', marginBottom: 40, display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 13.5, color: `${C.text}99` }}>معامله می‌کنم با موجودی اولیه:</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="icon-float" style={{ fontFamily: "'IBM Plex Mono', monospace", color: C.accent, fontSize: 16 }}>$</span>
+                <input type="text" inputMode="decimal" value={balanceText} onChange={e => onBalanceTextChange(e.target.value)} onBlur={onBalanceBlur}
+                  style={{ width: 130, background: C.bg, border: `1px solid ${C.text}18`, borderRadius: 8, padding: '9px 12px', color: C.text, fontFamily: "'IBM Plex Mono', monospace", fontSize: 15 }} />
+              </div>
+              <span style={{ fontSize: 12, color: `${C.text}55` }}>درصدهای سود و زیان بر همین اساس محاسبه می‌شن</span>
+            </div>
+
+            {sectionLabel('📊 شاخص‌های کلیدی عملکرد')}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 18, marginBottom: 56 }}>
+              <StatCard label="💰 سود/زیان خالص" value={`${netPnlAnimated >= 0 ? '+' : ''}${fmt(netPnlAnimated)}$`} sub={balance > 0 ? `${stats.netPnl >= 0 ? '+' : ''}${fmt((stats.netPnl / balance) * 100, 1)}% از موجودی` : undefined} tone={stats.netPnl >= 0 ? 'good' : 'bad'} />
+              <StatCard label="📈 پروفیت فکتور" value={stats.profitFactor === Infinity ? '∞' : fmt(stats.profitFactor, 2)} tone={stats.profitFactor >= 1.5 ? 'good' : stats.profitFactor < 1 ? 'bad' : undefined} />
+              <DualRateCard label="🎯 نرخ برد" rightValue={`${fmt(stats.winRate, 1)}%`} rightSub="از کل معاملات" leftValue={`${fmt(stats.winRateExclBE, 1)}%`} leftSub="بدون سربه‌سر" sub={`${stats.wins} برد / ${stats.losses} باخت / ${stats.bes} سر به سر`} />
+              <StatCard label="📋 تعداد معاملات" value={stats.total} />
+              <StatCard label="📈 میانگین سود" value={`${fmt(stats.avgWin)}$`} tone="good" />
+              <StatCard label="📉 میانگین ضرر" value={`-${fmt(stats.avgLoss)}$`} tone="bad" />
+              <StatCard label="⚖️ نسبت سود به ضرر" value={stats.avgLoss > 0 ? fmt(stats.avgWin / stats.avgLoss, 2) : '∞'} sub="میانگین سود ÷ میانگین ضرر" />
+              <StatCard label="🎯 اکسپکتنسی" value={`${stats.expectancy >= 0 ? '+' : ''}${fmt(stats.expectancy, 1)}$`} sub="به ازای هر معامله" />
+              <StatCard label="🚀 بیشترین رشد سرمایه" value={`+${fmt(stats.maxRunUp)}$`} tone={stats.maxRunUp > 0 ? 'good' : undefined} />
+              <StatCard label="⚠️ بیشترین افت سرمایه" value={`-${fmt(stats.maxDD)}$`} tone={stats.maxDD > 0 ? 'bad' : undefined} />
+            </div>
+
+            {sectionLabel('📊 تحلیل بر اساس R (هر R = ۱٪ از موجودی)')}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 18, marginBottom: 56 }}>
+              <StatCard label="📊 مجموع R" value={`${rStats.totalR >= 0 ? '+' : ''}${fmt(rStats.totalR, 2)}R`} tone={rStats.totalR >= 0 ? 'good' : 'bad'} sub={riskUnit ? `هر R = ${fmt(riskUnit)}$` : 'موجودی را وارد کن'} />
+              <StatCard label="📈 میانگین R بردها" value={`+${fmt(rStats.avgWinR, 2)}R`} tone="good" />
+              <StatCard label="📉 میانگین R باخت‌ها" value={`-${fmt(rStats.avgLossR, 2)}R`} tone="bad" />
+              <StatCard label="⚖️ ریسک به ریوارد کلی" value={rStats.rr === Infinity ? '∞' : `۱ : ${fmt(rStats.rr, 2)}`} sub="میانگین R برد ÷ میانگین R باخت" />
+            </div>
+
+            <div className="glass-effect" style={{ borderRadius: 14, padding: '24px 26px', marginBottom: 40 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>📈 R پیشرفته</div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: `${C.text}66` }}>
+                  <span className="icon-float">📊</span> Expectancy {fmt(rAdvanced.expectancy, 2)}R · Payoff {fmt(rAdvanced.payoff, 2)} · Max DD {fmt(rAdvanced.maxDrawdownR, 2)}R
+                </div>
+              </div>
+              <div style={{ fontSize: 12, color: `${C.text}66`, marginBottom: 16 }}>خط نارنجی = R تجمعی؛ میله‌ها = R هر معامله. برای بررسی کیفیت ریسک، نه فقط دلار.</div>
+              {rAdvanced.rows.length ? <ResponsiveContainer width="100%" height={260}>
+                <ComposedChart data={rAdvanced.rows} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid stroke={`${C.text}0c`} vertical={false} /><XAxis dataKey="name" stroke={`${C.text}45`} tick={{ fontSize: 9 }} /><YAxis stroke={`${C.text}45`} tick={{ fontSize: 9 }} /><ReferenceLine y={0} stroke={`${C.text}35`} strokeDasharray="4 4" />
+                  <Tooltip content={({ active, payload, label }) => active && payload?.length ? <div style={{ background: C.bgAlt, border: '1px solid #ffffff22', borderRadius: 8, padding: '9px 12px', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 }}><div>{label}</div>{payload.map((x, i) => <div key={i} style={{ color: x.dataKey === 'r' ? (x.value >= 0 ? C.positive : C.negative) : C.accent }}>{x.dataKey === 'r' ? 'R معامله' : 'R تجمعی'}: {fmt(x.value, 2)}R</div>)}</div> : null} />
+                  <Bar dataKey="r" radius={[4, 4, 0, 0]}>{rAdvanced.rows.map((x, i) => <Cell key={i} fill={x.r >= 0 ? C.positive : C.negative} />)}</Bar>
+                  <Line type="monotone" dataKey="cumulativeR" stroke={C.accent} strokeWidth={2.5} dot={false} isAnimationActive animationDuration={900} />
+                </ComposedChart>
+              </ResponsiveContainer> : <div style={{ padding: 25, color: `${C.text}55` }}>برای نمودار R معامله ثبت کن.</div>}
+            </div>
+
+            <div className="glass-effect" style={{ borderRadius: 14, padding: '24px 26px', marginBottom: 40 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>📌 سود و سود کلی به پیپ</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14 }}>
+                <StatCard label="📊 پیپ خالص" value={`${totalPips >= 0 ? '+' : ''}${fmt(totalPips, 1)} pip`} tone={totalPips >= 0 ? 'good' : 'bad'} />
+                <StatCard label="💰 سود دلاری خالص" value={`${stats.netPnl >= 0 ? '+' : ''}${fmt(stats.netPnl, 2)}$`} tone={stats.netPnl >= 0 ? 'good' : 'bad'} />
+                <StatCard label="📋 تعداد معاملات" value={stats.total} />
+              </div>
+            </div>
+
+            <div className="glass-effect" style={{ borderRadius: 14, padding: '22px 26px', marginBottom: 40 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>📊 هزینه‌های معاملاتی (کارمزد + سوآپ)</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14 }}>
+                <div><span style={{ color: `${C.text}66` }}>مجموع کارمزد:</span> <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: C.negative }}>{fmt(stats.totalCommission)}$</span></div>
+                <div><span style={{ color: `${C.text}66` }}>مجموع سوآپ:</span> <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: stats.totalSwap >= 0 ? C.positive : C.negative }}>{stats.totalSwap >= 0 ? '+' : ''}{fmt(stats.totalSwap)}$</span></div>
+                <div><span style={{ color: `${C.text}66` }}>مجموع هزینه‌ها:</span> <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: C.negative }}>{fmt(stats.totalCommission + stats.totalSwap)}$</span></div>
+                <div><span style={{ color: `${C.text}66` }}>تأثیر روی سود خالص:</span> <span style={{ fontFamily: "'IBM Plex Mono', monospace", color: C.negative }}>{fmt(((stats.totalCommission + stats.totalSwap) / Math.max(1, Math.abs(stats.netPnl))) * 100, 1)}%</span></div>
+              </div>
+            </div>
+
+            <div className="ss-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+              <div>
+                {sectionLabel('📈 منحنی سرمایه (بر اساس شماره معامله)')}
+                <div className="glass-effect" style={{ borderRadius: 14, padding: '28px 28px 14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 20, marginBottom: 6, flexWrap: 'wrap' }}>
+                    <div style={{ textAlign: 'left' }}><div style={{ fontSize: 10.5, color: `${C.text}55`, fontFamily: "'IBM Plex Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em' }}>بیشترین</div><div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 15, color: C.positive, marginTop: 2 }}>{fmt(equityPeak)}$</div></div>
+                    <div style={{ textAlign: 'left' }}><div style={{ fontSize: 10.5, color: `${C.text}55`, fontFamily: "'IBM Plex Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em' }}>فعلی</div><div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 15, color: C.accent, marginTop: 2 }}>{equityCurrentAnimated >= 0 ? '+' : ''}{fmt(equityCurrentAnimated)}$</div></div>
+                    <div style={{ textAlign: 'left' }}><div style={{ fontSize: 10.5, color: `${C.text}55`, fontFamily: "'IBM Plex Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em' }}>کمترین</div><div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 15, color: C.negative, marginTop: 2 }}>{fmt(equityLow)}$</div></div>
+                  </div>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <AreaChart data={equityCurve} margin={{ top: 10, right: 14, left: -6, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.accent} stopOpacity={0.38} /><stop offset="100%" stopColor={C.accent} stopOpacity={0} /></linearGradient>
+                        <filter id="equityGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+                      </defs>
+                      <CartesianGrid stroke={`${C.text}0a`} vertical={false} />
+                      <XAxis dataKey="name" stroke={`${C.text}45`} tick={{ fontSize: 10, fontFamily: 'IBM Plex Mono' }} axisLine={{ stroke: `${C.text}18` }} tickLine={false} />
+                      <YAxis stroke={`${C.text}45`} tick={{ fontSize: 10, fontFamily: 'IBM Plex Mono' }} axisLine={{ stroke: `${C.text}18` }} tickLine={false} />
+                      <ReferenceLine y={0} stroke={`${C.text}35`} strokeDasharray="4 4" />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: `${C.text}30`, strokeWidth: 1, strokeDasharray: '3 3' }} />
+                      <Area type="monotone" dataKey="equity" stroke={C.accent} strokeWidth={2.6} fill="url(#equityFill)" style={{ filter: 'url(#equityGlow)' }} dot={false} activeDot={{ r: 5.5, fill: C.accent, stroke: C.bgCard, strokeWidth: 2.5 }} isAnimationActive animationDuration={900} animationEasing="ease-out" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div>
+                {sectionLabel('📅 منحنی سرمایه (بر اساس روز تقویمی)')}
+                <div className="glass-effect" style={{ borderRadius: 14, padding: '28px 28px 14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 20, marginBottom: 6, flexWrap: 'wrap' }}>
+                    <div style={{ textAlign: 'left' }}><div style={{ fontSize: 10.5, color: `${C.text}55`, fontFamily: "'IBM Plex Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em' }}>بیشترین</div><div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 15, color: C.positive, marginTop: 2 }}>{fmt(calendarEquityPeak)}$</div></div>
+                    <div style={{ textAlign: 'left' }}><div style={{ fontSize: 10.5, color: `${C.text}55`, fontFamily: "'IBM Plex Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em' }}>فعلی</div><div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 15, color: C.accent, marginTop: 2 }}>{calendarEquityCurrentAnimated >= 0 ? '+' : ''}{fmt(calendarEquityCurrentAnimated)}$</div></div>
+                    <div style={{ textAlign: 'left' }}><div style={{ fontSize: 10.5, color: `${C.text}55`, fontFamily: "'IBM Plex Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em' }}>کمترین</div><div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 15, color: C.negative, marginTop: 2 }}>{fmt(calendarEquityLow)}$</div></div>
+                  </div>
+                  {calendarEquityCurve.length === 0 ? <div style={{ fontSize: 13, color: `${C.text}66`, padding: '30px 4px' }}>هنوز معامله‌ای ثبت نشده.</div> : (
+                    <ResponsiveContainer width="100%" height={280}>
+                      <AreaChart data={calendarEquityCurve} margin={{ top: 10, right: 14, left: -6, bottom: 0 }}>
+                        <defs><linearGradient id="calEquityFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.positive} stopOpacity={0.35} /><stop offset="100%" stopColor={C.positive} stopOpacity={0} /></linearGradient></defs>
+                        <CartesianGrid stroke={`${C.text}0a`} vertical={false} />
+                        <XAxis dataKey="name" stroke={`${C.text}45`} tick={{ fontSize: 9, fontFamily: 'IBM Plex Mono' }} axisLine={{ stroke: `${C.text}18` }} tickLine={false} interval="preserveStartEnd" />
+                        <YAxis stroke={`${C.text}45`} tick={{ fontSize: 10, fontFamily: 'IBM Plex Mono' }} axisLine={{ stroke: `${C.text}18` }} tickLine={false} />
+                        <ReferenceLine y={0} stroke={`${C.text}35`} strokeDasharray="4 4" />
+                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: `${C.text}30`, strokeWidth: 1, strokeDasharray: '3 3' }} />
+                        <Area type="monotone" dataKey="equity" stroke={C.positive} strokeWidth={2.6} fill="url(#calEquityFill)" dot={false} activeDot={{ r: 5.5, fill: C.positive, stroke: C.bgCard, strokeWidth: 2.5 }} isAnimationActive animationDuration={900} animationEasing="ease-out" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
+                  <div style={{ fontSize: 11, color: `${C.text}55`, marginTop: 4, textAlign: 'center' }}>روزهای بدون معامله به صورت خط صاف نشون داده می‌شن — شنبه و یکشنبه اصلاً در نمودار نیستن</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="ss-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginTop: 40 }}>
+              {emotionStats.length > 0 && (
+                <div className="glass-effect" style={{ borderRadius: 14, padding: '28px 26px' }}>
+                  {sectionLabel('😊 تحلیل احساسات')}
+                  <div style={{ fontSize: 13, color: `${C.text}88`, marginBottom: 20, marginTop: -10 }}>عملکرد هر حالت احساسی — کدوم حس برات سودآورتر بوده؟</div>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <BarChart data={emotionStats} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                      <CartesianGrid stroke={`${C.text}0c`} vertical={false} />
+                      <XAxis dataKey="name" stroke={`${C.text}55`} tick={{ fontSize: 9 }} axisLine={{ stroke: `${C.text}18` }} tickLine={false} />
+                      <YAxis stroke={`${C.text}55`} tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="pnl" radius={[5, 5, 0, 0]}>{emotionStats.map((e, i) => <Cell key={i} fill={e.pnl >= 0 ? C.positive : C.negative} />)}</Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {emotionStats.map(e => <span key={e.name} style={{ fontSize: 11.5, background: `${C.text}10`, padding: '4px 10px', borderRadius: 6 }}><span className="icon-float">{e.name}</span> {e.count} معامله · {e.pnl >= 0 ? '+' : ''}{fmt(e.pnl)}$</span>)}
+                  </div>
+                </div>
+              )}
+              {hourlyStats.length > 0 && (
+                <div className="glass-effect" style={{ borderRadius: 14, padding: '28px 26px' }}>
+                  {sectionLabel('🕐 عملکرد ساعتی')}
+                  <div style={{ fontSize: 13, color: `${C.text}88`, marginBottom: 20, marginTop: -10 }}>سود/زیان در هر ساعت از روز</div>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <BarChart data={hourlyStats} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                      <CartesianGrid stroke={`${C.text}0c`} vertical={false} />
+                      <XAxis dataKey="hour" stroke={`${C.text}55`} tick={{ fontSize: 8 }} axisLine={{ stroke: `${C.text}18` }} tickLine={false} />
+                      <YAxis stroke={`${C.text}55`} tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="pnl" radius={[5, 5, 0, 0]}>{hourlyStats.map((e, i) => <Cell key={i} fill={e.pnl >= 0 ? C.positive : C.negative} />)}</Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            {sectionLabel('💡 پیشنهادهای هوشمند بر اساس معاملات تو')}
+            <div className="glass-effect" style={{ borderRadius: 14, padding: '26px 26px', marginTop: 32 }}>
+              {insights.length === 0 ? <div style={{ fontSize: 13, color: `${C.text}66` }}>برای ارائه پیشنهاد دقیق، حداقل به ۵ معامله نیاز داریم — کمی بیشتر معامله ثبت کن.</div> : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {insights.map((ins, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', background: `${ins.tone === 'good' ? C.positive : C.negative}0f`, border: `1px solid ${ins.tone === 'good' ? C.positive : C.negative}33`, borderRadius: 10 }}>
+                      <span style={{ fontSize: 16, lineHeight: '20px' }}>{ins.tone === 'good' ? '💡' : '⚠️'}</span>
+                      <span style={{ fontSize: 13, lineHeight: 1.8, color: C.text }}>{ins.text}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* PAGE 1 */}
+        {page === 1 && (
+          <div key={page} className="page-fade">
+          <div className="ss-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, padding: '0 2px' }}>
+            <div className="glass-effect" style={{ borderRadius: 14, padding: '28px 26px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div className="icon-badge" style={{ width: 30, height: 30, borderRadius: 9, background: `linear-gradient(150deg, ${C.accent}30, ${C.accent}08)`, border: `1px solid ${C.accent}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `inset 0 1px 1px rgba(255,255,255,0.15)` }}><span className="icon-float"><Target size={15} color={C.accent} /></span></div>
+                {sectionLabel('🎯 عملکرد بر اساس سشن')}
+              </div>
+              {bestSession && <div style={{ fontSize: 13.5, color: C.positive, marginBottom: 20 }}>✦ بهترین سشن: <strong>{bestSession.name}</strong> ({bestSession.netPnl >= 0 ? '+' : ''}{fmt(bestSession.netPnl)}$)</div>}
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={bySession} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                  <CartesianGrid stroke={`${C.text}0c`} vertical={false} />
+                  <XAxis dataKey="name" stroke={`${C.text}55`} tick={{ fontSize: 9.5 }} axisLine={{ stroke: `${C.text}18` }} tickLine={false} />
+                  <YAxis stroke={`${C.text}55`} tick={{ fontSize: 9.5 }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="netPnl" radius={[5, 5, 0, 0]}>{bySession.map((e, i) => <Cell key={i} fill={e.netPnl >= 0 ? C.positive : C.negative} />)}</Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div style={{ marginTop: 22 }}>
+                {bySession.map(s => (
+                  <div key={s.name} style={{ padding: '12px 2px', borderBottom: `1px solid ${C.text}12` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span><span style={{ fontFamily: "'IBM Plex Mono', monospace", color: s.netPnl >= 0 ? C.positive : C.negative, flexShrink: 0 }}>{s.netPnl >= 0 ? '+' : ''}{fmt(s.netPnl)}$</span></div>
+                    <div style={{ fontSize: 11.5, color: `${C.text}66`, marginTop: 4, fontFamily: "'IBM Plex Mono', monospace" }}>{s.total} معامله · برد {fmt(s.winRate, 0)}%</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="glass-effect" style={{ borderRadius: 14, padding: '28px 26px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div className="icon-badge" style={{ width: 30, height: 30, borderRadius: 9, background: `linear-gradient(150deg, ${C.accent}30, ${C.accent}08)`, border: `1px solid ${C.accent}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `inset 0 1px 1px rgba(255,255,255,0.15)` }}><span className="icon-spin"><Award size={15} color={C.accent} /></span></div>
+                {sectionLabel('🏆 عملکرد بر اساس نماد')}
+              </div>
+              {bestSymbol && <div style={{ fontSize: 13.5, color: C.positive, marginBottom: 20 }}>✦ بهترین نماد: <strong>{bestSymbol.name}</strong> ({bestSymbol.netPnl >= 0 ? '+' : ''}{fmt(bestSymbol.netPnl)}$)</div>}
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={bySymbol} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                  <CartesianGrid stroke={`${C.text}0c`} vertical={false} />
+                  <XAxis dataKey="name" stroke={`${C.text}55`} tick={{ fontSize: 9.5 }} axisLine={{ stroke: `${C.text}18` }} tickLine={false} />
+                  <YAxis stroke={`${C.text}55`} tick={{ fontSize: 9.5 }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="netPnl" radius={[5, 5, 0, 0]}>{bySymbol.map((e, i) => <Cell key={i} fill={e.netPnl >= 0 ? C.positive : C.negative} />)}</Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div style={{ marginTop: 22 }}>
+                {bySymbol.map(s => (
+                  <div key={s.name} style={{ padding: '12px 2px', borderBottom: `1px solid ${C.text}12` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span><span style={{ fontFamily: "'IBM Plex Mono', monospace", color: s.netPnl >= 0 ? C.positive : C.negative, flexShrink: 0 }}>{s.netPnl >= 0 ? '+' : ''}{fmt(s.netPnl)}$</span></div>
+                    <div style={{ fontSize: 11.5, color: `${C.text}66`, marginTop: 4, fontFamily: "'IBM Plex Mono', monospace" }}>{s.total} معامله · برد {fmt(s.winRate, 0)}%</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {byStrategy.length > 0 && (
+            <div className="glass-effect" style={{ borderRadius: 14, padding: '28px 26px', marginTop: 32 }}>
+              {sectionLabel('📊 آنالیز استراتژی‌ها')}
+              {bestStrategy && <div style={{ fontSize: 13.5, color: C.positive, marginBottom: 20, marginTop: -10 }}>✦ بهترین استراتژی: <strong>{bestStrategy.name}</strong> ({bestStrategy.netPnl >= 0 ? '+' : ''}{fmt(bestStrategy.netPnl)}$)</div>}
+              <ResponsiveContainer width="100%" height={170}>
+                <BarChart data={byStrategy} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                  <CartesianGrid stroke={`${C.text}0c`} vertical={false} />
+                  <XAxis dataKey="name" stroke={`${C.text}55`} tick={{ fontSize: 10 }} axisLine={{ stroke: `${C.text}18` }} tickLine={false} />
+                  <YAxis stroke={`${C.text}55`} tick={{ fontSize: 9.5 }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="netPnl" radius={[5, 5, 0, 0]}>{byStrategy.map((e, i) => <Cell key={i} fill={e.netPnl >= 0 ? C.positive : C.negative} />)}</Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+                {byStrategy.map(s => (
+                  <div key={s.name} className="glass-soft" style={{ borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}><span style={{ fontWeight: 700, fontSize: 13.5 }}>{s.name}</span><span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: s.netPnl >= 0 ? C.positive : C.negative }}>{s.netPnl >= 0 ? '+' : ''}{fmt(s.netPnl)}$</span></div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 11.5, color: `${C.text}88`, fontFamily: "'IBM Plex Mono', monospace" }}><span>{s.total} معامله</span><span>برد {fmt(s.winRate, 0)}%</span><span>پروفیت فکتور {s.profitFactor === Infinity ? '∞' : fmt(s.profitFactor, 2)}</span><span>R:R {s.avgLoss > 0 ? `۱:${fmt(s.avgWin / s.avgLoss, 2)}` : (s.avgWin > 0 ? '∞' : '—')}</span></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {byRR.length > 0 && (
+            <div className="glass-effect" style={{ borderRadius: 14, padding: '28px 26px', marginTop: 32 }}>
+              {sectionLabel('⚖️ کدام ریسک به ریوارد بیشتر به هدف سود می‌رسه؟')}
+              <div style={{ fontSize: 13, color: `${C.text}88`, marginBottom: 22, marginTop: -10 }}>معاملاتت بر اساس نسبت ریسک به ریوارد دسته‌بندی شدن — نشون می‌ده کدوم نسبت‌ها برات بیشتر جواب دادن</div>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={byRR} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                  <CartesianGrid stroke={`${C.text}0c`} vertical={false} />
+                  <XAxis dataKey="name" stroke={`${C.text}55`} tick={{ fontSize: 10 }} axisLine={{ stroke: `${C.text}18` }} tickLine={false} />
+                  <YAxis stroke={`${C.text}55`} tick={{ fontSize: 9.5 }} axisLine={false} tickLine={false} unit="%" domain={[0, 100]} />
+                  <Tooltip content={({ active, payload, label }) => {
+                    if (!active || !payload || !payload.length) return null;
+                    const d = payload[0].payload;
+                    return <div style={{ background: C.bgAlt, border: '1px solid #ffffff22', borderRadius: 8, padding: '10px 14px', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}><div style={{ color: '#c7ccd6', marginBottom: 4 }}>{label} · {d.total} معامله</div><div style={{ color: C.accent }}>وین‌ریت: {fmt(d.winRate, 0)}%</div><div style={{ color: d.netPnl >= 0 ? C.positive : C.negative }}>سود/زیان: {d.netPnl >= 0 ? '+' : ''}{fmt(d.netPnl)}$</div></div>;
+                  }} />
+                  <Bar dataKey="winRate" radius={[5, 5, 0, 0]}>{byRR.map((e, i) => <Cell key={i} fill={C.accent} fillOpacity={0.4 + 0.6 * (e.winRate / 100)} />)}</Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+                {byRR.map(b => (
+                  <div key={b.name} className="glass-soft" style={{ borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, fontFamily: "'IBM Plex Mono', monospace" }}>{b.name}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 11.5, color: `${C.text}88`, fontFamily: "'IBM Plex Mono', monospace" }}><span>{b.total} معامله</span><span style={{ color: C.accent }}>وین‌ریت {fmt(b.winRate, 0)}%</span><span style={{ color: b.netPnl >= 0 ? C.positive : C.negative }}>{b.netPnl >= 0 ? '+' : ''}{fmt(b.netPnl)}$</span></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          </div>
+        )}
+        {page === 3 && (
+          <div key={page} className="page-fade">
+            <div className="glass-effect" style={{ borderRadius: 14, padding: '28px 26px', marginBottom: 32 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10, marginBottom: 4 }}>
+                {sectionLabel('📅 آنالیز هفته جاری')}
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: `${C.text}66` }}>{currentWeekInfo ? `${fmtDateShort(currentWeekInfo.start)} تا ${fmtDateShort(currentWeekInfo.end)}` : ''}</span>
+              </div>
+              <div style={{ fontSize: 13, color: `${C.text}88`, marginBottom: 22, marginTop: -6 }}>فقط معاملات همین هفته — با شروع هفته بعد خودش صفر می‌شه و از نو حساب می‌شه</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
+                <StatCard label="💰 سود/زیان این هفته" value={`${currentWeekStats.netPnl >= 0 ? '+' : ''}${fmt(currentWeekStats.netPnl)}$`} sub={balance > 0 ? `${currentWeekPercent >= 0 ? '+' : ''}${fmt(currentWeekPercent, 2)}% از موجودی` : undefined} tone={currentWeekStats.netPnl >= 0 ? 'good' : 'bad'} />
+                <StatCard label="📋 تعداد معاملات" value={currentWeekStats.total} />
+                <DualRateCard label="🎯 نرخ برد" rightValue={`${fmt(currentWeekStats.winRate, 0)}%`} rightSub="از کل معاملات" leftValue={`${fmt(currentWeekStats.winRateExclBE, 0)}%`} leftSub="بدون سربه‌سر" sub={`${currentWeekStats.wins} برد / ${currentWeekStats.losses} باخت / ${currentWeekStats.bes} سر به سر`} />
+                <StatCard label="🎯 اکسپکتنسی" value={`${currentWeekStats.expectancy >= 0 ? '+' : ''}${fmt(currentWeekStats.expectancy, 1)}$`} sub="به ازای هر معامله" />
+              </div>
+              {currentWeekStats.total === 0 && <div style={{ marginTop: 18, fontSize: 12.5, color: `${C.text}55` }}>هنوز این هفته معامله‌ای ثبت نشده.</div>}
+            </div>
+
+            {weeklyStats.length > 0 && (
+              <div className="glass-effect" style={{ borderRadius: 14, padding: '28px 26px', marginBottom: 32 }}>
+                {sectionLabel('📈 روند سود/زیان هفتگی (از اولین هفته تا امروز)')}
+                <div style={{ fontSize: 13, color: `${C.text}88`, marginBottom: 22, marginTop: -10 }}>هر ستون یعنی یک هفته تقویمی — از شنبه تا جمعه — با مجموع دلاری و درصدی همون هفته</div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={weeklyStats} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                    <CartesianGrid stroke={`${C.text}0c`} vertical={false} />
+                    <XAxis dataKey="name" stroke={`${C.text}55`} tick={{ fontSize: 10.5 }} axisLine={{ stroke: `${C.text}18` }} tickLine={false} />
+                    <YAxis stroke={`${C.text}55`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <Tooltip content={({ active, payload, label }) => {
+                      if (!active || !payload || !payload.length) return null;
+                      const d = payload[0].payload;
+                      return <div style={{ background: C.bgAlt, border: '1px solid #ffffff22', borderRadius: 8, padding: '10px 14px', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}><div style={{ color: '#c7ccd6', marginBottom: 4 }}>{label} · {d.range}</div><div style={{ color: d.netPnl >= 0 ? C.positive : C.negative }}>{d.netPnl >= 0 ? '+' : ''}{fmt(d.netPnl)}$ · {d.pips >= 0 ? '+' : ''}{fmt(d.pips, 1)} pip · {d.r >= 0 ? '+' : ''}{fmt(d.r, 2)}R ({d.percent >= 0 ? '+' : ''}{fmt(d.percent, 2)}%)</div><div style={{ color: '#9aa1af' }}>{d.count} معامله · برد {fmt(d.winRate, 0)}%</div></div>;
+                    }} />
+                    <ReferenceLine y={0} stroke={`${C.text}40`} />
+                    <Bar dataKey="netPnl" radius={[5, 5, 0, 0]}>{weeklyStats.map((e, i) => <Cell key={i} fill={e.netPnl >= 0 ? C.positive : C.negative} />)}</Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+                <div style={{ marginTop: 22 }}>
+                  {weeklyStats.map(w => (
+                    <div key={w.name} style={{ padding: '12px 2px', borderBottom: `1px solid ${C.text}12` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span>{w.name} <span style={{ color: `${C.text}55`, fontSize: 11.5 }}>({w.range})</span></span><span style={{ fontFamily: "'IBM Plex Mono', monospace", color: w.netPnl >= 0 ? C.positive : C.negative }}>{w.pips >= 0 ? '+' : ''}{fmt(w.pips, 1)} pip · {w.r >= 0 ? '+' : ''}{fmt(w.r, 2)}R · {w.netPnl >= 0 ? '+' : ''}{fmt(w.netPnl)}$ · {w.percent >= 0 ? '+' : ''}{fmt(w.percent, 2)}%</span></div>
+                      <div style={{ fontSize: 11.5, color: `${C.text}66`, marginTop: 4, fontFamily: "'IBM Plex Mono', monospace" }}>{w.count} معامله · برد {fmt(w.winRate, 0)}%</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="glass-effect" style={{ borderRadius: 14, padding: '28px 26px', marginBottom: 32 }}>
+              {sectionLabel('📊 عملکرد بر اساس روز هفته (مجموع)')}
+              <div style={{ fontSize: 13, color: `${C.text}88`, marginBottom: 22, marginTop: -10 }}>مجموع سود/زیان هر روز هفته، جمع همه معاملات همان روز</div>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={byDayOrdered} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                  <CartesianGrid stroke={`${C.text}0c`} vertical={false} />
+                  <XAxis dataKey="name" stroke={`${C.text}55`} tick={{ fontSize: 10.5 }} axisLine={{ stroke: `${C.text}18` }} tickLine={false} />
+                  <YAxis stroke={`${C.text}55`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="netPnl" radius={[5, 5, 0, 0]}>{byDayOrdered.map((e, i) => <Cell key={i} fill={e.netPnl >= 0 ? C.positive : C.negative} />)}</Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div style={{ marginTop: 22 }}>
+                {byDayOrdered.map(d => (
+                  <div key={d.name} style={{ padding: '12px 2px', borderBottom: `1px solid ${C.text}12` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span>{d.name}</span><span style={{ fontFamily: "'IBM Plex Mono', monospace", color: d.netPnl >= 0 ? C.positive : C.negative }}>{d.netPnl >= 0 ? '+' : ''}{fmt(d.netPnl)}$</span></div>
+                    <div style={{ fontSize: 11.5, color: `${C.text}66`, marginTop: 4, fontFamily: "'IBM Plex Mono', monospace" }}>{d.total} معامله{d.total ? ` · برد ${fmt(d.winRate, 0)}%` : ''}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="glass-effect" style={{ borderRadius: 14, padding: '28px 26px', marginBottom: 32 }}>
+              {sectionLabel('📊 مجموع کل سود/زیان هر روز هفته (بر اساس تعداد جلسات)')}
+              <div style={{ fontSize: 13, color: `${C.text}88`, marginBottom: 22, marginTop: -10 }}>مثلاً: در ۴ دوشنبه‌ای که معامله کردی، در مجموع چقدر سود یا زیان کردی</div>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={dayAvgStats} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                  <CartesianGrid stroke={`${C.text}0c`} vertical={false} />
+                  <XAxis dataKey="name" stroke={`${C.text}55`} tick={{ fontSize: 10.5 }} axisLine={{ stroke: `${C.text}18` }} tickLine={false} />
+                  <YAxis stroke={`${C.text}55`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <Tooltip content={({ active, payload, label }) => {
+                    if (!active || !payload || !payload.length) return null;
+                    const d = payload[0].payload;
+                    return <div style={{ background: C.bgAlt, border: '1px solid #ffffff22', borderRadius: 8, padding: '10px 14px', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}><div style={{ color: '#c7ccd6', marginBottom: 4 }}>{label} · {d.occurrences} جلسه</div><div style={{ color: d.totalPnl >= 0 ? C.positive : C.negative }}>مجموع: {d.totalPnl >= 0 ? '+' : ''}{fmt(d.totalPnl)}$</div></div>;
+                  }} />
+                  <ReferenceLine y={0} stroke={`${C.text}40`} />
+                  <Bar dataKey="totalPnl" radius={[5, 5, 0, 0]}>{dayAvgStats.map((e, i) => <Cell key={i} fill={e.totalPnl >= 0 ? C.positive : C.negative} />)}</Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div style={{ marginTop: 22 }}>
+                {dayAvgStats.map(d => (
+                  <div key={d.name} style={{ padding: '12px 2px', borderBottom: `1px solid ${C.text}12` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span>{d.name}</span><span style={{ fontFamily: "'IBM Plex Mono', monospace", color: d.totalPnl >= 0 ? C.positive : C.negative }}>{d.totalPnl >= 0 ? '+' : ''}{fmt(d.totalPnl)}$</span></div>
+                    <div style={{ fontSize: 11.5, color: `${C.text}66`, marginTop: 4, fontFamily: "'IBM Plex Mono', monospace" }}>{d.occurrences ? `در ${d.occurrences} ${d.name}` : 'بدون معامله'}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="glass-effect" style={{ borderRadius: 14, padding: '28px 26px' }}>
+              {sectionLabel('📊 میانگین عملکرد روزانه بر اساس روز هفته')}
+              <div style={{ fontSize: 13, color: `${C.text}88`, marginBottom: 22, marginTop: -10 }}>مثلاً اگر در ۳ دوشنبه‌ی مختلف در مجموع ۳٪ از موجودی ضرر کردی، میانگین هر دوشنبه ۱٪ ضرر است</div>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={dayAvgStats} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                  <CartesianGrid stroke={`${C.text}0c`} vertical={false} />
+                  <XAxis dataKey="name" stroke={`${C.text}55`} tick={{ fontSize: 10.5 }} axisLine={{ stroke: `${C.text}18` }} tickLine={false} />
+                  <YAxis stroke={`${C.text}55`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} unit="%" />
+                  <Tooltip content={({ active, payload, label }) => {
+                    if (!active || !payload || !payload.length) return null;
+                    const d = payload[0].payload;
+                    return <div style={{ background: C.bgAlt, border: '1px solid #ffffff22', borderRadius: 8, padding: '10px 14px', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}><div style={{ color: '#c7ccd6', marginBottom: 4 }}>{label} · {d.occurrences} تکرار</div><div style={{ color: d.avgPercent >= 0 ? C.positive : C.negative }}>میانگین: {d.avgPercent >= 0 ? '+' : ''}{fmt(d.avgPercent, 2)}%</div><div style={{ color: '#9aa1af' }}>مجموع: {d.totalPercent >= 0 ? '+' : ''}{fmt(d.totalPercent, 2)}%</div></div>;
+                  }} />
+                  <ReferenceLine y={0} stroke={`${C.text}40`} />
+                  <Bar dataKey="avgPercent" radius={[5, 5, 0, 0]}>{dayAvgStats.map((e, i) => <Cell key={i} fill={e.avgPercent >= 0 ? C.positive : C.negative} />)}</Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div style={{ marginTop: 22 }}>
+                {dayAvgStats.map(d => (
+                  <div key={d.name} style={{ padding: '12px 2px', borderBottom: `1px solid ${C.text}12` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span>{d.name}</span><span style={{ fontFamily: "'IBM Plex Mono', monospace", color: d.avgPercent >= 0 ? C.positive : C.negative }}>{d.avgPercent >= 0 ? '+' : ''}{fmt(d.avgPercent, 2)}% / روز</span></div>
+                    <div style={{ fontSize: 11.5, color: `${C.text}66`, marginTop: 4, fontFamily: "'IBM Plex Mono', monospace" }}>{d.occurrences} {d.name} · مجموع {d.totalPercent >= 0 ? '+' : ''}{fmt(d.totalPercent, 2)}%</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PAGE 4 */}
+        {page === 4 && (
+          <div key={page} className="page-fade">
+            <div className="glass-effect" style={{ borderRadius: 14, padding: '28px 26px', marginBottom: 40, overflowX: 'auto' }}>
+              {sectionLabel('📊 ماتریس نماد × سشن')}
+              <div style={{ fontSize: 13, color: `${C.text}88`, marginBottom: 22, marginTop: -10 }}>سود/زیان خالص هر نماد در هر سشن — روشن‌ترین سلول، بهترین ترکیب توست</div>
+              <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 580 }}>
+                <thead><tr><th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, color: `${C.text}55`, fontFamily: "'IBM Plex Mono', monospace" }}>نماد</th>{SESSIONS.map(s => <th key={s} style={{ textAlign: 'center', padding: '10px 12px', fontSize: 11, color: `${C.text}55`, fontFamily: "'IBM Plex Mono', monospace" }}>{s}</th>)}</tr></thead>
+                <tbody>
+                  {matrix.symbols.map(sym => (
+                    <tr key={sym}>
+                      <td style={{ padding: '12px', fontSize: 13.5, fontWeight: 600, borderTop: `1px solid ${C.text}12` }}>{sym}</td>
+                      {SESSIONS.map(sess => {
+                        const key = `${sym}|${sess}`; const cell = matrix.cells[key]; const isBest = key === matrix.bestKey;
+                        const opacity = cell ? 0.16 + 0.55 * (Math.abs(cell.pnl) / matrix.maxAbs) : 0;
+                        const posRgb = hexToRgb(C.positive), negRgb = hexToRgb(C.negative);
+                        const bg = cell ? (cell.pnl >= 0 ? `rgba(${posRgb},${opacity})` : `rgba(${negRgb},${opacity})`) : 'transparent';
+                        return (
+                          <td key={sess} style={{ padding: '12px', textAlign: 'center', borderTop: `1px solid ${C.text}12`, background: bg, borderRadius: 6 }}>
+                            {cell ? <div><div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: isBest ? 700 : 500, color: cell.pnl >= 0 ? C.positive : C.negative }}>{cell.pnl >= 0 ? '+' : ''}{fmt(cell.pnl)}$ {isBest && '★'}</div><div style={{ fontSize: 10.5, color: `${C.text}55`, marginTop: 3 }}>{cell.count} معامله</div></div> : <span style={{ color: `${C.text}30`, fontSize: 12 }}>—</span>}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {matrix.bestKey && <div style={{ marginTop: 22, fontSize: 13.5, color: C.accent }}>★ بیشترین بهره‌وری: <strong>{matrix.bestKey.split('|')[0]}</strong> در سشن <strong>{matrix.bestKey.split('|')[1]}</strong></div>}
+            </div>
+
+            <div className="glass-effect" style={{ borderRadius: 14, padding: '28px 26px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 12 }}>
+                {sectionLabel(`📋 تاریخچه معاملات (${trades.length})`)}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => window.print()} className="no-print" style={{ background: `${C.text}20`, color: C.text, border: 'none', borderRadius: 8, padding: '9px 14px', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>🖨 چاپ</button>
+                  <button onClick={(e) => { setShowForm(true); setEditingId(null); setForm(EMPTY_FORM); createRipple(e, 'rgba(255,255,255,0.4)'); }} className="ripple-btn" style={{ display: 'flex', alignItems: 'center', gap: 7, background: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '9px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer', position: 'relative', overflow: 'hidden' }}><span className="icon-bounce"><Plus size={15} /></span> ثبت معامله</button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16, marginBottom: 18 }}>
+                <input placeholder="جستجو بر اساس نماد، استراتژی یا سشن..." value={historySearch} onChange={e => setHistorySearch(e.target.value)} style={{ flex: 1, minWidth: 160, background: C.bg, border: `1px solid ${C.text}18`, borderRadius: 8, padding: '9px 14px', color: C.text, fontSize: 13 }} />
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {[{ k: 'all', l: 'همه' }, { k: 'win', l: 'برد' }, { k: 'loss', l: 'باخت' }, { k: 'be', l: 'سربه‌سر' }].map(f => (
+                    <button key={f.k} onClick={() => setHistoryFilter(f.k)} style={{ padding: '9px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', border: `1px solid ${historyFilter === f.k ? C.accent : C.text + '18'}`, background: historyFilter === f.k ? `${C.accent}22` : 'transparent', color: historyFilter === f.k ? C.accent : `${C.text}88` }}>{f.l}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 11.5, color: `${C.text}66` }}>از:</span><input type="date" value={dateRange.from} onChange={e => setDateRange({ ...dateRange, from: e.target.value })} style={{ background: C.bg, border: `1px solid ${C.text}18`, borderRadius: 6, padding: '6px 10px', color: C.text, fontSize: 12 }} /></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 11.5, color: `${C.text}66` }}>تا:</span><input type="date" value={dateRange.to} onChange={e => setDateRange({ ...dateRange, to: e.target.value })} style={{ background: C.bg, border: `1px solid ${C.text}18`, borderRadius: 6, padding: '6px 10px', color: C.text, fontSize: 12 }} /></div>
+                {(dateRange.from || dateRange.to) && <button onClick={() => setDateRange({ from: '', to: '' })} style={{ background: 'none', border: 'none', color: C.negative, fontSize: 12, cursor: 'pointer' }}>✕ پاک کردن</button>}
+              </div>
+
+              <div style={{ maxHeight: 560, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {filteredTrades.length === 0 && <div style={{ padding: '30px 4px', textAlign: 'center', color: `${C.text}55`, fontSize: 13 }}>معامله‌ای با این فیلتر پیدا نشد</div>}
+                {filteredTrades.map((t, idx) => {
+                  const rm = RESULT_META[resultOf(t)]; const lossPercent = balance > 0 && t.pnl < 0 ? (Math.abs(t.pnl) / balance) * 100 : 0; const isBigLoss = lossPercent > 2;
+                  return (
+                    <div key={t.id} className="trade-item glass-soft" style={{ animationDelay: `${Math.min(idx, 12) * 35}ms`, borderRadius: 10, padding: '12px 14px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 15, fontWeight: 700 }}>{t.symbol}</span>
+                          <span style={{ fontSize: 10.5, color: `${C.text}88`, border: `1px solid ${C.text}22`, borderRadius: 10, padding: '1px 8px' }}>{t.direction}</span>
+                          <span style={{ fontSize: 10.5, fontWeight: 700, color: rm.color, border: `1px solid ${rm.color}55`, background: `${rm.color}18`, borderRadius: 10, padding: '1px 8px' }}>{rm.label}</span>
+                          {typeof t.rr === 'number' && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.accent, border: `1px solid ${C.accent}55`, background: `${C.accent}18`, borderRadius: 10, padding: '1px 8px', fontFamily: "'IBM Plex Mono', monospace" }}>R:R ۱:{fmt(t.rr, 1)}</span>}
+                          {isBigLoss && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.negative, border: `1px solid ${C.negative}66`, background: `${C.negative}22`, borderRadius: 10, padding: '1px 8px' }}>⚠ ضرر بیش از ۲٪ ({fmt(lossPercent, 1)}٪)</span>}
+                          {(t.commission !== undefined && t.commission !== 0) && <span style={{ fontSize: 10, color: `${C.text}55`, border: `1px solid ${C.text}22`, borderRadius: 10, padding: '1px 6px' }}>کارمزد: {fmt(t.commission)}$</span>}
+                          {(t.swap !== undefined && t.swap !== 0) && <span style={{ fontSize: 10, color: `${C.text}55`, border: `1px solid ${C.text}22`, borderRadius: 10, padding: '1px 6px' }}>سوآپ: {t.swap >= 0 ? '+' : ''}{fmt(t.swap)}$</span>}
+                        </div>
+                        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}><button onClick={() => editTrade(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5 }}><Edit size={13} color={C.accent} /></button><button onClick={() => deleteTrade(t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5 }}><Trash2 size={13} color={C.negative} /></button></div>
+                      </div>
+                      <div style={{ fontSize: 10.5, color: `${C.text}66`, marginBottom: (t.entryPrice || t.exitPrice) ? 4 : 8, fontFamily: "'IBM Plex Mono', monospace" }}>{t.date}{t.day ? ` · ${t.day}` : ''}{t.time ? ` · ${t.time}` : ''} · {t.session}{t.strategy ? ` · ` : ''}{t.strategy && <span style={{ color: C.accent }}>{t.strategy}</span>}</div>
+                      {(t.entryPrice || t.exitPrice || t.stopLoss || t.target) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 8, fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: `${C.text}77` }}>{t.entryPrice && <span>ورود <b style={{ color: C.text }}>{t.entryPrice}</b></span>}{t.exitPrice && <span>خروج <b style={{ color: C.text }}>{t.exitPrice}</b></span>}{t.stopLoss && <span>استاپ <b style={{ color: C.negative }}>{t.stopLoss}</b></span>}{t.target && <span>تارگت <b style={{ color: C.positive }}>{t.target}</b></span>}{t.volume && <span>حجم <b style={{ color: C.text }}>{t.volume}</b></span>}{t.riskPercent && <span>ریسک <b style={{ color: C.accent }}>{t.riskPercent}%</b></span>}</div>}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, borderTop: `1px solid ${C.text}0f` }}>
+                        <span style={{ fontSize: 11, color: `${C.text}66`, fontStyle: t.emotion ? 'italic' : 'normal' }}>{t.emotion || ''}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{riskUnit > 0 && <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: `${C.text}66` }}>{t.pnl >= 0 ? '+' : ''}{fmt(t.pnl / riskUnit, 2)}R</span>}{t.pnl >= 0 ? <span className="icon-float"><TrendingUp size={13} color={C.positive} /></span> : <span className="icon-pulse"><TrendingDown size={13} color={C.negative} /></span>}<span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, fontWeight: 700, color: t.pnl >= 0 ? C.positive : C.negative }}>{t.pnl >= 0 ? '+' : ''}{fmt(t.pnl)}$</span></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ===== ناوبری شناور ۵ گزینه‌ای ===== */}
+      <div className="floating-nav-wrapper no-print">
+        <div className="floating-nav">
+          
+          <div className={`slider-indicator pos-${activeNav === 0 ? 1 : activeNav === 1 ? 2 : activeNav === 3 ? 4 : 5}`}></div>
+
+          <button className={`nav-btn-item ${activeNav === 0 ? 'active' : ''}`} onClick={() => handleNavClick(0)}>
+            <LayoutDashboard size={20} />
+            <span>نمای کلی</span>
+          </button>
+
+          <button className={`nav-btn-item ${activeNav === 1 ? 'active' : ''}`} onClick={() => handleNavClick(1)}>
+            <Layers size={20} />
+            <span>سشن و نماد</span>
+          </button>
+
+          <button className="nav-add-btn attention-spin" onClick={(e) => { setShowForm(true); setEditingId(null); setForm(EMPTY_FORM); createRipple(e, 'rgba(255,255,255,0.4)'); }}>
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+
+          <button className={`nav-btn-item ${activeNav === 3 ? 'active' : ''}`} onClick={() => handleNavClick(3)}>
+            <CalendarDays size={20} />
+            <span>هفته‌ها<br/>و روزها</span>
+          </button>
+
+          <button className={`nav-btn-item ${activeNav === 4 ? 'active' : ''}`} onClick={() => handleNavClick(4)}>
+            <FileText size={20} />
+            <span>ماتریس<br/>و تاریخچه</span>
+          </button>
+
+        </div>
+      </div>
+
+      {showForm && (
+        <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) { setShowForm(false); setForm(EMPTY_FORM); setEditingId(null); } }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 20 }}>
+          <div className="modal-panel trade-form" style={{ background: C.bgCard, border: `1px solid ${C.text}18`, borderRadius: 18, padding: 30, width: '100%', maxWidth: 650, maxHeight: '88vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 26 }}>
+              <div style={{ fontWeight: 700, fontSize: 17 }}>{editingId ? 'ویرایش معامله' : 'ثبت معامله جدید'}</div>
+              <button onClick={() => { setShowForm(false); setForm(EMPTY_FORM); setEditingId(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={19} color={`${C.text}88`} /></button>
+            </div>
+
+            {(() => {
+              const fld = { width: '100%', background: C.bg, border: `1px solid ${C.text}18`, borderRadius: 8, padding: '10px 12px', color: C.text, fontSize: 13.5 };
+              const lbl = { fontSize: 12, color: `${C.text}88`, display: 'block', marginBottom: 7 };
+              const compactForm = window.innerWidth <= 560;
+              const row2 = { display: 'grid', gridTemplateColumns: compactForm ? '1fr' : '1fr 1fr', gap: 14, marginBottom: 18 };
+              const row3 = { display: 'grid', gridTemplateColumns: compactForm ? '1fr' : '1fr 1fr 1fr', gap: 14, marginBottom: 18 };
+
+              return (
+                <>
+                  <div className="form-section">
+                  <div style={row2}>
+                    <div><label style={lbl}>نماد</label><select value={form.symbol} onChange={e => setForm({ ...form, symbol: e.target.value })} style={fld}>{SYMBOL_PRESETS.map(s => <option key={s} value={s}>{s}</option>)}<option value="Custom">دیگر...</option></select>{form.symbol === 'Custom' && <input placeholder="نام نماد" value={form.customSymbol} onChange={e => setForm({ ...form, customSymbol: e.target.value })} style={{ ...fld, marginTop: 10 }} />}</div>
+                    <div><label style={lbl}>سشن</label><select value={form.session} onChange={e => setForm({ ...form, session: e.target.value })} style={fld}>{SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+                  </div>
+                  </div>
+                  <div className="form-section">
+                  <div style={row3}>
+                    <div><label style={lbl}>روز هفته</label><div style={{ ...fld, display: 'flex', alignItems: 'center', color: `${C.text}99`, background: `${C.text}0a` }}>{weekdayFaFromDate(form.date) || '—'}</div></div>
+                    <div><label style={lbl}>ساعت</label><CustomTimePicker value={form.time} onChange={(t) => setForm({ ...form, time: t })} C={C} /></div>
+                    <div><label style={lbl}>تاریخ</label><CustomDatePicker value={form.date} onChange={(d) => setForm({ ...form, date: d })} C={C} /></div>
+                  </div>
+                  </div>
+                  <div className="form-section">
+                  <div style={row3}>
+                    <div><label style={lbl}>جهت معامله</label><select value={form.direction} onChange={e => setForm({ ...form, direction: e.target.value })} style={fld}><option value="خرید">خرید</option><option value="فروش">فروش</option></select></div>
+                    <div><label style={lbl}>قیمت ورود</label><input type="text" inputMode="decimal" value={form.entryPrice} onChange={e => setForm({ ...form, entryPrice: e.target.value })} style={fld} /></div>
+                    <div><label style={lbl}>حجم (لات)</label><input type="text" inputMode="decimal" placeholder="مثلاً 0.1" value={form.volume} onChange={e => setForm({ ...form, volume: e.target.value })} style={fld} /></div>
+                  </div>
+                  </div>
+                  <div className="form-section">
+                  <div style={row2}>
+                    <div><label style={lbl}>استاپ لاس</label><input type="text" inputMode="decimal" value={form.stopLoss} onChange={e => setForm({ ...form, stopLoss: e.target.value })} style={fld} /></div>
+                    <div><label style={lbl}>تارگت</label><input type="text" inputMode="decimal" value={form.target} onChange={e => setForm({ ...form, target: e.target.value })} style={fld} /></div>
+                  </div>
+                  {(() => { const liveRR = calcRR(form.entryPrice, form.stopLoss, form.target); if (liveRR === null) return null; const rrColor = liveRR >= 2 ? C.positive : liveRR >= 1 ? C.accent : C.negative; return (<div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, padding: '10px 14px', background: `${rrColor}14`, border: `1px solid ${rrColor}40`, borderRadius: 8 }}><span style={{ fontSize: 12, color: `${C.text}88` }}>ریسک به ریوارد این معامله:</span><span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 15, fontWeight: 700, color: rrColor }}>۱ : {fmt(liveRR, 2)}</span></div>); })()}
+                  <div style={{ marginBottom: 18 }}>
+                    <label style={lbl}>قیمت خروج</label>
+                    <div style={{ display: 'flex', gap: 10 }}><input type="text" inputMode="decimal" placeholder="قیمت خروج را وارد کن یا از دکمه‌ها انتخاب کن" value={form.exitPrice} onChange={e => setForm({ ...form, exitPrice: e.target.value })} style={{ ...fld, flex: 1 }} /><button type="button" onClick={() => setExitFrom('stop')} className="ripple-btn" style={{ background: `${C.negative}22`, color: C.negative, border: `1px solid ${C.negative}44`, borderRadius: 8, padding: '0 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', position: 'relative', overflow: 'hidden' }}>استاپ</button><button type="button" onClick={() => setExitFrom('target')} className="ripple-btn" style={{ background: `${C.positive}22`, color: C.positive, border: `1px solid ${C.positive}44`, borderRadius: 8, padding: '0 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', position: 'relative', overflow: 'hidden' }}>تارگت</button></div>
+                  </div>
+                  <div style={row2}>
+                    <div><label style={lbl}>کارمزد (Commission)</label><input type="text" inputMode="decimal" placeholder="مثلاً -2" value={form.commission} onChange={e => setForm({ ...form, commission: e.target.value })} style={fld} /></div>
+                    <div><label style={lbl}>سوآپ (Swap)</label><input type="text" inputMode="decimal" placeholder="مثلاً -1 یا +0.5" value={form.swap} onChange={e => setForm({ ...form, swap: e.target.value })} style={fld} /></div>
+                  </div>
+                  <div style={{ marginBottom: 18 }}><label style={lbl}>درصد ریسک از موجودی</label><input type="text" inputMode="decimal" placeholder="مثلاً 1" value={form.riskPercent} onChange={e => setForm({ ...form, riskPercent: e.target.value })} style={fld} /></div>
+                  <label style={lbl}>استراتژی ورود <span style={{ color: `${C.text}55`, fontWeight: 400 }}>(اختیاری)</span></label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                    <button type="button" onClick={() => setForm({ ...form, strategy: '' })} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: 20, fontSize: 12.5, cursor: 'pointer', border: `1px solid ${!form.strategy ? C.accent : C.text + '22'}`, background: !form.strategy ? `${C.accent}22` : 'transparent', color: !form.strategy ? C.accent : `${C.text}aa` }}>بدون استراتژی</button>
+                    {strategies.map(s => (<button key={s} type="button" onClick={() => setForm({ ...form, strategy: s })} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: 20, fontSize: 12.5, cursor: 'pointer', border: `1px solid ${form.strategy === s ? C.accent : C.text + '22'}`, background: form.strategy === s ? `${C.accent}22` : 'transparent', color: form.strategy === s ? C.accent : `${C.text}aa` }}>{s}<X size={11} onClick={(e) => { e.stopPropagation(); removeStrategyOption(s); }} /></button>))}</div>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}><input placeholder="افزودن استراتژی جدید (مثلاً اردر بلاک)" value={newStrategy} onChange={e => setNewStrategy(e.target.value)} onKeyDown={e => e.key === 'Enter' && addStrategyOption()} style={{ ...fld, flex: 1 }} /><button type="button" onClick={addStrategyOption} className="ripple-btn" style={{ background: C.bgCard, border: `1px solid ${C.text}18`, borderRadius: 8, padding: '0 16px', color: C.text, cursor: 'pointer', position: 'relative', overflow: 'hidden' }}><Plus size={15} /></button></div>
+                  <label style={lbl}>نتیجه معامله</label>
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>{[{ k: 'win', l: 'برد', c: C.positive }, { k: 'loss', l: 'باخت', c: C.negative }, { k: 'be', l: 'سر به سر', c: C.accent }].map(o => (<button key={o.k} type="button" onClick={() => setForm({ ...form, result: o.k })} style={{ flex: 1, padding: '11px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${form.result === o.k ? o.c : C.text + '22'}`, background: form.result === o.k ? `${o.c}22` : 'transparent', color: form.result === o.k ? o.c : `${C.text}88` }}>{o.l}</button>))}</div>
+                  <label style={lbl}>احساسات لحظه ورود</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>{EMOTION_TAGS.map(tag => (<button key={tag} type="button" onClick={() => setForm({ ...form, emotion: tag })} style={{ padding: '5px 12px', borderRadius: 14, fontSize: 12, cursor: 'pointer', border: `1px solid ${form.emotion === tag ? C.accent : C.text + '22'}`, background: form.emotion === tag ? `${C.accent}22` : 'transparent', color: form.emotion === tag ? C.accent : `${C.text}88` }}>{tag}</button>))}</div>
+                  <input placeholder="یا هر چیز دیگه..." value={form.emotion} onChange={e => setForm({ ...form, emotion: e.target.value })} style={{ ...fld, marginBottom: 18 }} />
+                  <div style={{ marginBottom: 22 }}>
+                    <label style={{ ...lbl, fontSize: 13, fontWeight: 700, color: C.text }}>سود / زیان نهایی این معامله ($)</label>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+                      <input type="text" inputMode="text" placeholder="150 یا -80" value={form.pnl}
+                        onChange={e => setForm({ ...form, pnl: e.target.value })}
+                        style={{ flex: '1 1 auto', minWidth: 0, background: C.bg, border: `2px solid ${form.pnl === '' ? C.text + '18' : (parseFloat(form.pnl) >= 0 ? C.positive + '55' : C.negative + '55')}`, borderRadius: 9, padding: '10px 12px', color: form.pnl === '' ? C.text : (parseFloat(form.pnl) >= 0 ? C.positive : C.negative), fontSize: 18, fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace", textAlign: 'center' }} />
+                      <button type="button" onClick={calcPnlFromPrices} title="محاسبه خودکار از قیمت ورود، خروج، حجم، کارمزد و سوآپ" className="ripple-btn"
+                        style={{ flex: '0 0 auto', background: `${C.accent}22`, color: C.accent, border: `1px solid ${C.accent}44`, borderRadius: 9, padding: '0 11px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', position: 'relative', overflow: 'hidden' }}>
+                        ⚡ محاسبه خودکار
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 10.5, color: `${C.text}55`, marginTop: 7, textAlign: 'center' }}>
+                      با ورود قیمت ورود، خروج و حجم، مقدار سود/زیان خودکار محاسبه می‌شود؛ کارمزد و سوآپ هم لحاظ می‌شوند.
+                    </div>
+                  </div>
+                  <button onClick={(e) => { createRipple(e, 'rgba(255,255,255,0.4)'); addTrade(); }} className="ripple-btn form-submit" style={{ width: '100%', background: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '13px', fontWeight: 700, cursor: 'pointer', fontSize: 14, position: 'relative', overflow: 'hidden' }}>{editingId ? 'ویرایش معامله' : 'ثبت معامله'}</button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<TradingJournal />);
+</script>
+</body>
+  </html>
