@@ -2278,8 +2278,9 @@ function SubBody({ sub, onPaid }) {
         if (busy) return;
         setBusy(true); setMsg(null);
         try {
-            const { data, error } = await sb.functions.invoke('verify-payment', { body: { txid: tx.trim() } });
-            if (error) throw new Error('ارتباط با سرور برقرار نشد');
+            if (!sb) throw new Error('اتصال به سرور برقرار نشد؛ صفحه را دوباره باز کن');
+            const { data, error } = await sb.functions.invoke('smooth-endpoint', { body: { txid: tx.trim() } });
+            if (error) throw new Error('ارتباط با سرور برقرار نشد (' + String(error.message || error.name || '').slice(0, 70) + ')');
             if (!data || !data.ok) throw new Error((data && data.msg) || 'تأیید نشد');
             setMsg({ ok: true, t: 'پرداخت تأیید شد ✅ اشتراک تا ' + new Date(data.paid_until).toLocaleDateString('fa-IR') + ' فعال است' });
             setTx('');
@@ -2299,11 +2300,11 @@ function SubBody({ sub, onPaid }) {
             h('div', { className: 'sb-wallet' }, WALLET_ADDR),
             h('button', { type: 'button', className: 'sb-copy', onClick: copy }, copied ? '✓ کپی شد' : 'کپی آدرس'))),
         h('div', { className: 'sb-step' }, h('span', null, '2'), h('div', null, 'بعد از واریز، کد تراکنش (TXID) را از کیف پول یا صرافی کپی کن.')),
+        msg && h('div', { className: 'sb-msg ' + (msg.ok ? 'ok' : 'bad') }, msg.t),
         h('form', { className: 'sb-step', onSubmit: verify, style: { flexWrap: 'wrap' } }, h('span', null, '3'),
             h('div', { style: { flex: 1, minWidth: 0 } }, 'کد تراکنش را اینجا بچسبان:',
                 h('input', { value: tx, onChange: e => { setTx(e.target.value); setMsg(null); }, placeholder: '0x…', dir: 'ltr', style: { width: '100%', marginTop: 6, textAlign: 'left' }, autoComplete: 'off', spellCheck: 'false' }),
                 h('button', { className: 'mm-btn', style: { marginTop: 8, width: '100%' }, disabled: busy || tx.trim().length < 60 }, busy ? 'در حال بررسی شبکه…' : 'تأیید پرداخت'))),
-        msg && h('div', { className: 'sb-msg ' + (msg.ok ? 'ok' : 'bad') }, msg.t),
         h('div', { className: 'sb-warn' }, '⚠️ فقط شبکه‌ی BEP-20. ارسال از شبکه‌ی دیگر (مثل TRC-20 یا ERC-20) قابل بازگشت نیست. کارمزد انتقال را جدا حساب کن تا مبلغ دریافتی حداقل ۵ تتر باشد. تأیید شبکه ۱ تا ۲ دقیقه طول می‌کشد.'));
 }
 function ChangePass({ user, onDone }) {
